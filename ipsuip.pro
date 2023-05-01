@@ -9,3 +9,7 @@ SOURCES += \
 HEADERS += \
     countries.h \
     functions.h
+
+DISTFILES += \
+    README.md \
+    ip2cidr.awk
