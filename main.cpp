@@ -1,17 +1,19 @@
 /** Made by I'Pancake **/
 
 #include "countries.h"
-#include "functions.h"
-#include <filesystem>
+// #include <filesystem>
 #include <fstream>
-#include <iostream>
-#include <map>
-#include <set>
-#include <string>
-#include <vector>
+// #include <iostream>
+// #include <map>
+// #include <set>
+// #include <string>
+// #include <vector>
+#include "functions.h"
+#include "sync-ssl/http_client_sync_ssl.cpp"
 
 int main(int argc, char **argv)
 {
+    
 
     try
     {
@@ -53,12 +55,10 @@ int main(int argc, char **argv)
             {
                 if (cmd[1] == mainland || cmd[1] == mainland_sh)
                 {
-
                     m = ipsuip::map_code(ipsuip::mainland_code_data);
                 }
                 else if (cmd[1] == country || cmd[1] == country_sh)
                 {
-
                     m = ipsuip::map_code(ipsuip::country_code_data);
                 }
 
@@ -103,7 +103,8 @@ int main(int argc, char **argv)
 
                     spath.append(m[code] + "/");
 
-                    run_init(code, spath, m, ipsuip::TYPEPARSING::CONTINENT);
+                    ipsuip::run_init(code, spath, m,
+                                     ipsuip::TYPEPARSING::CONTINENT);
                 }
             }
             else
@@ -119,7 +120,8 @@ int main(int argc, char **argv)
 
                     spath.append(m[code] + "/");
 
-                    run_init(code, spath, m, ipsuip::TYPEPARSING::COUNTRY);
+                    ipsuip::run_init(code, spath, m,
+                                     ipsuip::TYPEPARSING::COUNTRY);
                 }
             }
 
