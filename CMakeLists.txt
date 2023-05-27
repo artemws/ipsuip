@@ -37,7 +37,9 @@ set(Boost_USE_MULTITHREADED     ON)
 set(Boost_USE_STATIC_RUNTIME   OFF)
 
 
-find_package(Boost COMPONENTS thread REQUIRED)
+find_package(Boost COMPONENTS
+    #thread
+    REQUIRED)
 
 include_directories(${Boost_INCLUDE_DIRS})
 message("Boost_include_dirs ${Boost_INCLUDE_DIRS}")
