@@ -1,6 +1,7 @@
 /** Made by I'Pancake **/
 
 #include "countries.h"
+#include "functions.h"
 // #include <filesystem>
 #include <fstream>
 // #include <iostream>
@@ -8,12 +9,9 @@
 // #include <set>
 // #include <string>
 // #include <vector>
-#include "functions.h"
-#include "sync-ssl/http_client_sync_ssl.cpp"
 
 int main(int argc, char **argv)
 {
-    
 
     try
     {
@@ -134,14 +132,21 @@ int main(int argc, char **argv)
         else if ((cmd.size() == 5 && cmd[3] == output_sh) ||
                  (cmd.size() == 5 && cmd[3] == output))
         {
+            auto start = std::chrono::steady_clock::now();
 
-            if (ipsuip::codes_mainlands.contains(cmd[2]))
+            if ((cmd[1] == mainland &&
+                 ipsuip::codes_mainlands.contains(cmd[2])) ||
+                (cmd[1] == mainland_sh &&
+                 ipsuip::codes_mainlands.contains(cmd[2])))
             {
                 m = ipsuip::map_code(ipsuip::mainland_code_data);
 
                 run_init(cmd[2], cmd[4], m, ipsuip::TYPEPARSING::CONTINENT);
             }
-            else if (ipsuip::codes_countries.contains(cmd[2]))
+            else if ((cmd[1] == country &&
+                      ipsuip::codes_countries.contains(cmd[2])) ||
+                     (cmd[1] == country_sh &&
+                      ipsuip::codes_countries.contains(cmd[2])))
             {
                 m = ipsuip::map_code(ipsuip::country_code_data);
 
@@ -153,6 +158,13 @@ int main(int argc, char **argv)
                                          " this is the wrong argument!");
             }
 
+            auto end = std::chrono::steady_clock::now();
+            std::cout << "All done" << std::endl;
+            std::cout << "Elapsed time in seconds: "
+                      << std::chrono::duration_cast<std::chrono::seconds>(end -
+                                                                          start)
+                             .count()
+                      << " sec" << std::endl;
             return 0;
         }
 

@@ -1,5 +1,5 @@
 
-#include "root_certificates.h"
+#include "../cert/root_certificates.h"
 #include <boost/asio/connect.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/ssl/error.hpp>
@@ -12,8 +12,8 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
-#include <string>
 #include <sstream>
+#include <string>
 
 namespace beast = boost::beast; // from <boost/beast.hpp>
 namespace http = beast::http;   // from <boost/beast/http.hpp>
@@ -29,13 +29,12 @@ enum class Variant
 };
 
 // Performs an HTTP GET and prints the response
-std::stringstream get(const std::string &host, const std::string &target)
+auto get(const std::string &host, const std::string &target)
 {
     std::stringstream ss;
 
     try
     {
-
         // The io_context is required for all I/O
         net::io_context ioc;
 
@@ -70,7 +69,7 @@ std::stringstream get(const std::string &host, const std::string &target)
         stream.handshake(ssl::stream_base::client);
 
         // Set up an HTTP GET request message
-        http::request<http::string_body> req{http::verb::get, target, 11};
+        http::request<http::string_body> req(http::verb::get, target, 11);
         req.set(http::field::host, host);
         req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
@@ -81,16 +80,22 @@ std::stringstream get(const std::string &host, const std::string &target)
         beast::flat_buffer buffer;
 
         // Declare a container to hold the response
-        http::response<http::dynamic_body> res;
+        // http::response<http::dynamic_body> res;
+
+        http::response_parser<http::string_body> parser;
+
+        // Allow for an unlimited body size
+        parser.body_limit((std::numeric_limits<std::uint64_t>::max)());
 
         // Receive the HTTP response
-        http::read(stream, buffer, res);
+        http::read(stream, buffer, parser);
 
         // Write the message to standard out
         // std::cout << res << std::endl;
         // std::ofstream ofs("index.html");
         // ofs << res;
-        ss << res;
+
+        ss << parser.get();
 
         // Gracefully close the stream
         beast::error_code ec;
@@ -110,7 +115,8 @@ std::stringstream get(const std::string &host, const std::string &target)
     catch (std::exception const &e)
     {
         std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "http_client_sync_ssl" << std::endl;
     }
 
-    return ss;
+    return ss.str();
 }
