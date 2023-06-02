@@ -1,63 +1,59 @@
-
-#include "root_certificates.h"
+#pragma once
+#include <boost/asio/ssl/context.hpp>
 
 // namespace ssl = boost::asio::ssl; // from <boost/asio/ssl.hpp>
 
-namespace detail
-{
+namespace ipsuip {
 
-    void
-    load_root_certificates(boost::asio::ssl::context &ctx, boost::system::error_code &ec)
-    {
-        std::string cert =
-            "# ACCVRAIZ1\n"
-            "-----BEGIN CERTIFICATE-----\n"
-            "MIIH0zCCBbugAwIBAgIIXsO3pkN/pOAwDQYJKoZIhvcNAQEFBQAwQjESMBAGA1UE\n"
-            "AwwJQUNDVlJBSVoxMRAwDgYDVQQLDAdQS0lBQ0NWMQ0wCwYDVQQKDARBQ0NWMQsw\n"
-            "CQYDVQQGEwJFUzAeFw0xMTA1MDUwOTM3MzdaFw0zMDEyMzEwOTM3MzdaMEIxEjAQ\n"
-            "BgNVBAMMCUFDQ1ZSQUlaMTEQMA4GA1UECwwHUEtJQUNDVjENMAsGA1UECgwEQUND\n"
-            "VjELMAkGA1UEBhMCRVMwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCb\n"
-            "qau/YUqXry+XZpp0X9DZlv3P4uRm7x8fRzPCRKPfmt4ftVTdFXxpNRFvu8gMjmoY\n"
-            "HtiP2Ra8EEg2XPBjs5BaXCQ316PWywlxufEBcoSwfdtNgM3802/J+Nq2DoLSRYWo\n"
-            "G2ioPej0RGy9ocLLA76MPhMAhN9KSMDjIgro6TenGEyxCQ0jVn8ETdkXhBilyNpA\n"
-            "lHPrzg5XPAOBOp0KoVdDaaxXbXmQeOW1tDvYvEyNKKGno6e6Ak4l0Squ7a4DIrhr\n"
-            "IA8wKFSVf+DuzgpmndFALW4ir50awQUZ0m/A8p/4e7MCQvtQqR0tkw8jq8bBD5L/\n"
-            "0KIV9VMJcRz/RROE5iZe+OCIHAr8Fraocwa48GOEAqDGWuzndN9wrqODJerWx5eH\n"
-            "k6fGioozl2A3ED6XPm4pFdahD9GILBKfb6qkxkLrQaLjlUPTAYVtjrs78yM2x/47\n"
-            "4KElB0iryYl0/wiPgL/AlmXz7uxLaL2diMMxs0Dx6M/2OLuc5NF/1OVYm3z61PMO\n"
-            "m3WR5LpSLhl+0fXNWhn8ugb2+1KoS5kE3fj5tItQo05iifCHJPqDQsGH+tUtKSpa\n"
-            "cXpkatcnYGMN285J9Y0fkIkyF/hzQ7jSWpOGYdbhdQrqeWZ2iE9x6wQl1gpaepPl\n"
-            "uUsXQA+xtrn13k/c4LOsOxFwYIRKQ26ZIMApcQrAZQIDAQABo4ICyzCCAscwfQYI\n"
-            "KwYBBQUHAQEEcTBvMEwGCCsGAQUFBzAChkBodHRwOi8vd3d3LmFjY3YuZXMvZmls\n"
-            "ZWFkbWluL0FyY2hpdm9zL2NlcnRpZmljYWRvcy9yYWl6YWNjdjEuY3J0MB8GCCsG\n"
-            "AQUFBzABhhNodHRwOi8vb2NzcC5hY2N2LmVzMB0GA1UdDgQWBBTSh7Tj3zcnk1X2\n"
-            "VuqB5TbMjB4/vTAPBgNVHRMBAf8EBTADAQH/MB8GA1UdIwQYMBaAFNKHtOPfNyeT\n"
-            "VfZW6oHlNsyMHj+9MIIBcwYDVR0gBIIBajCCAWYwggFiBgRVHSAAMIIBWDCCASIG\n"
-            "CCsGAQUFBwICMIIBFB6CARAAQQB1AHQAbwByAGkAZABhAGQAIABkAGUAIABDAGUA\n"
-            "cgB0AGkAZgBpAGMAYQBjAGkA8wBuACAAUgBhAO0AegAgAGQAZQAgAGwAYQAgAEEA\n"
-            "QwBDAFYAIAAoAEEAZwBlAG4AYwBpAGEAIABkAGUAIABUAGUAYwBuAG8AbABvAGcA\n"
-            "7QBhACAAeQAgAEMAZQByAHQAaQBmAGkAYwBhAGMAaQDzAG4AIABFAGwAZQBjAHQA\n"
-            "cgDzAG4AaQBjAGEALAAgAEMASQBGACAAUQA0ADYAMAAxADEANQA2AEUAKQAuACAA\n"
-            "QwBQAFMAIABlAG4AIABoAHQAdABwADoALwAvAHcAdwB3AC4AYQBjAGMAdgAuAGUA\n"
-            "czAwBggrBgEFBQcCARYkaHR0cDovL3d3dy5hY2N2LmVzL2xlZ2lzbGFjaW9uX2Mu\n"
-            "aHRtMFUGA1UdHwROMEwwSqBIoEaGRGh0dHA6Ly93d3cuYWNjdi5lcy9maWxlYWRt\n"
-            "aW4vQXJjaGl2b3MvY2VydGlmaWNhZG9zL3JhaXphY2N2MV9kZXIuY3JsMA4GA1Ud\n"
-            "DwEB/wQEAwIBBjAXBgNVHREEEDAOgQxhY2N2QGFjY3YuZXMwDQYJKoZIhvcNAQEF\n"
-            "BQADggIBAJcxAp/n/UNnSEQU5CmH7UwoZtCPNdpNYbdKl02125DgBS4OxnnQ8pdp\n"
-            "D70ER9m+27Up2pvZrqmZ1dM8MJP1jaGo/AaNRPTKFpV8M9xii6g3+CfYCS0b78gU\n"
-            "JyCpZET/LtZ1qmxNYEAZSUNUY9rizLpm5U9EelvZaoErQNV/+QEnWCzI7UiRfD+m\n"
-            "AM/EKXMRNt6GGT6d7hmKG9Ww7Y49nCrADdg9ZuM8Db3VlFzi4qc1GwQA9j9ajepD\n"
-            "vV+JHanBsMyZ4k0ACtrJJ1vnE5Bc5PUzolVt3OAJTS+xJlsndQAJxGJ3KQhfnlms\n"
-            "tn6tn1QwIgPBHnFk/vk4CpYY3QIUrCPLBhwepH2NDd4nQeit2hW3sCPdK6jT2iWH\n"
-            "7ehVRE2I9DZ+hJp4rPcOVkkO1jMl1oRQQmwgEh0q1b688nCBpHBgvgW1m54ERL5h\n"
-            "I6zppSSMEYCUWqKiuUnSwdzRp+0xESyeGabu4VXhwOrPDYTkF7eifKXeVSUG7szA\n"
-            "h1xA2syVP1XgNce4hL60Xc16gwFy7ofmXx2utYXGJt/mwZrpHgJHnyqobalbz+xF\n"
-            "d3+YJ5oyXSrjhO7FmGYvliAd3djDJ9ew+f7Zfc3Qn48LFFhRny+Lwzgt3uiP1o2H\n"
-            "pPVWQxaZLPSkVrQ0uGE3ycJYgBugl6H8WY3pEfbRD0tVNEYqi4Y7\n"
-            "-----END CERTIFICATE-----\n"
-            "\n";
-        cert +=
-            "# AC RAIZ FNMT-RCM\n"
+inline void load_root_certificates(boost::asio::ssl::context &ctx, boost::system::error_code &ec)
+{
+    std::string cert = "# ACCVRAIZ1\n"
+                       "-----BEGIN CERTIFICATE-----\n"
+                       "MIIH0zCCBbugAwIBAgIIXsO3pkN/pOAwDQYJKoZIhvcNAQEFBQAwQjESMBAGA1UE\n"
+                       "AwwJQUNDVlJBSVoxMRAwDgYDVQQLDAdQS0lBQ0NWMQ0wCwYDVQQKDARBQ0NWMQsw\n"
+                       "CQYDVQQGEwJFUzAeFw0xMTA1MDUwOTM3MzdaFw0zMDEyMzEwOTM3MzdaMEIxEjAQ\n"
+                       "BgNVBAMMCUFDQ1ZSQUlaMTEQMA4GA1UECwwHUEtJQUNDVjENMAsGA1UECgwEQUND\n"
+                       "VjELMAkGA1UEBhMCRVMwggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCb\n"
+                       "qau/YUqXry+XZpp0X9DZlv3P4uRm7x8fRzPCRKPfmt4ftVTdFXxpNRFvu8gMjmoY\n"
+                       "HtiP2Ra8EEg2XPBjs5BaXCQ316PWywlxufEBcoSwfdtNgM3802/J+Nq2DoLSRYWo\n"
+                       "G2ioPej0RGy9ocLLA76MPhMAhN9KSMDjIgro6TenGEyxCQ0jVn8ETdkXhBilyNpA\n"
+                       "lHPrzg5XPAOBOp0KoVdDaaxXbXmQeOW1tDvYvEyNKKGno6e6Ak4l0Squ7a4DIrhr\n"
+                       "IA8wKFSVf+DuzgpmndFALW4ir50awQUZ0m/A8p/4e7MCQvtQqR0tkw8jq8bBD5L/\n"
+                       "0KIV9VMJcRz/RROE5iZe+OCIHAr8Fraocwa48GOEAqDGWuzndN9wrqODJerWx5eH\n"
+                       "k6fGioozl2A3ED6XPm4pFdahD9GILBKfb6qkxkLrQaLjlUPTAYVtjrs78yM2x/47\n"
+                       "4KElB0iryYl0/wiPgL/AlmXz7uxLaL2diMMxs0Dx6M/2OLuc5NF/1OVYm3z61PMO\n"
+                       "m3WR5LpSLhl+0fXNWhn8ugb2+1KoS5kE3fj5tItQo05iifCHJPqDQsGH+tUtKSpa\n"
+                       "cXpkatcnYGMN285J9Y0fkIkyF/hzQ7jSWpOGYdbhdQrqeWZ2iE9x6wQl1gpaepPl\n"
+                       "uUsXQA+xtrn13k/c4LOsOxFwYIRKQ26ZIMApcQrAZQIDAQABo4ICyzCCAscwfQYI\n"
+                       "KwYBBQUHAQEEcTBvMEwGCCsGAQUFBzAChkBodHRwOi8vd3d3LmFjY3YuZXMvZmls\n"
+                       "ZWFkbWluL0FyY2hpdm9zL2NlcnRpZmljYWRvcy9yYWl6YWNjdjEuY3J0MB8GCCsG\n"
+                       "AQUFBzABhhNodHRwOi8vb2NzcC5hY2N2LmVzMB0GA1UdDgQWBBTSh7Tj3zcnk1X2\n"
+                       "VuqB5TbMjB4/vTAPBgNVHRMBAf8EBTADAQH/MB8GA1UdIwQYMBaAFNKHtOPfNyeT\n"
+                       "VfZW6oHlNsyMHj+9MIIBcwYDVR0gBIIBajCCAWYwggFiBgRVHSAAMIIBWDCCASIG\n"
+                       "CCsGAQUFBwICMIIBFB6CARAAQQB1AHQAbwByAGkAZABhAGQAIABkAGUAIABDAGUA\n"
+                       "cgB0AGkAZgBpAGMAYQBjAGkA8wBuACAAUgBhAO0AegAgAGQAZQAgAGwAYQAgAEEA\n"
+                       "QwBDAFYAIAAoAEEAZwBlAG4AYwBpAGEAIABkAGUAIABUAGUAYwBuAG8AbABvAGcA\n"
+                       "7QBhACAAeQAgAEMAZQByAHQAaQBmAGkAYwBhAGMAaQDzAG4AIABFAGwAZQBjAHQA\n"
+                       "cgDzAG4AaQBjAGEALAAgAEMASQBGACAAUQA0ADYAMAAxADEANQA2AEUAKQAuACAA\n"
+                       "QwBQAFMAIABlAG4AIABoAHQAdABwADoALwAvAHcAdwB3AC4AYQBjAGMAdgAuAGUA\n"
+                       "czAwBggrBgEFBQcCARYkaHR0cDovL3d3dy5hY2N2LmVzL2xlZ2lzbGFjaW9uX2Mu\n"
+                       "aHRtMFUGA1UdHwROMEwwSqBIoEaGRGh0dHA6Ly93d3cuYWNjdi5lcy9maWxlYWRt\n"
+                       "aW4vQXJjaGl2b3MvY2VydGlmaWNhZG9zL3JhaXphY2N2MV9kZXIuY3JsMA4GA1Ud\n"
+                       "DwEB/wQEAwIBBjAXBgNVHREEEDAOgQxhY2N2QGFjY3YuZXMwDQYJKoZIhvcNAQEF\n"
+                       "BQADggIBAJcxAp/n/UNnSEQU5CmH7UwoZtCPNdpNYbdKl02125DgBS4OxnnQ8pdp\n"
+                       "D70ER9m+27Up2pvZrqmZ1dM8MJP1jaGo/AaNRPTKFpV8M9xii6g3+CfYCS0b78gU\n"
+                       "JyCpZET/LtZ1qmxNYEAZSUNUY9rizLpm5U9EelvZaoErQNV/+QEnWCzI7UiRfD+m\n"
+                       "AM/EKXMRNt6GGT6d7hmKG9Ww7Y49nCrADdg9ZuM8Db3VlFzi4qc1GwQA9j9ajepD\n"
+                       "vV+JHanBsMyZ4k0ACtrJJ1vnE5Bc5PUzolVt3OAJTS+xJlsndQAJxGJ3KQhfnlms\n"
+                       "tn6tn1QwIgPBHnFk/vk4CpYY3QIUrCPLBhwepH2NDd4nQeit2hW3sCPdK6jT2iWH\n"
+                       "7ehVRE2I9DZ+hJp4rPcOVkkO1jMl1oRQQmwgEh0q1b688nCBpHBgvgW1m54ERL5h\n"
+                       "I6zppSSMEYCUWqKiuUnSwdzRp+0xESyeGabu4VXhwOrPDYTkF7eifKXeVSUG7szA\n"
+                       "h1xA2syVP1XgNce4hL60Xc16gwFy7ofmXx2utYXGJt/mwZrpHgJHnyqobalbz+xF\n"
+                       "d3+YJ5oyXSrjhO7FmGYvliAd3djDJ9ew+f7Zfc3Qn48LFFhRny+Lwzgt3uiP1o2H\n"
+                       "pPVWQxaZLPSkVrQ0uGE3ycJYgBugl6H8WY3pEfbRD0tVNEYqi4Y7\n"
+                       "-----END CERTIFICATE-----\n"
+                       "\n";
+    cert += "# AC RAIZ FNMT-RCM\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFgzCCA2ugAwIBAgIPXZONMGc2yAYdGsdUhGkHMA0GCSqGSIb3DQEBCwUAMDsx\n"
             "CzAJBgNVBAYTAkVTMREwDwYDVQQKDAhGTk1ULVJDTTEZMBcGA1UECwwQQUMgUkFJ\n"
@@ -91,8 +87,7 @@ namespace detail
             "uu8wd+RU4riEmViAqhOLUTpPSPaLtrM=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Actalis Authentication Root CA\n"
+    cert += "# Actalis Authentication Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFuzCCA6OgAwIBAgIIVwoRl0LE48wwDQYJKoZIhvcNAQELBQAwazELMAkGA1UE\n"
             "BhMCSVQxDjAMBgNVBAcMBU1pbGFuMSMwIQYDVQQKDBpBY3RhbGlzIFMucC5BLi8w\n"
@@ -127,8 +122,7 @@ namespace detail
             "LnPqZih4zR0Uv6CPLy64Lo7yFIrM6bV8+2ydDKXhlg==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# AffirmTrust Commercial\n"
+    cert += "# AffirmTrust Commercial\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDTDCCAjSgAwIBAgIId3cGJyapsXwwDQYJKoZIhvcNAQELBQAwRDELMAkGA1UE\n"
             "BhMCVVMxFDASBgNVBAoMC0FmZmlybVRydXN0MR8wHQYDVQQDDBZBZmZpcm1UcnVz\n"
@@ -150,8 +144,7 @@ namespace detail
             "nlpOZbWUrhvfKbAW8b8Angc6F2S1BLUjIZkKlTuXfO8=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# AffirmTrust Networking\n"
+    cert += "# AffirmTrust Networking\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDTDCCAjSgAwIBAgIIfE8EORzUmS0wDQYJKoZIhvcNAQEFBQAwRDELMAkGA1UE\n"
             "BhMCVVMxFDASBgNVBAoMC0FmZmlybVRydXN0MR8wHQYDVQQDDBZBZmZpcm1UcnVz\n"
@@ -173,8 +166,7 @@ namespace detail
             "x3evZKiT3/Zpg4Jg8klCNO1aAFSFHBY2kgxc+qatv9s=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# AffirmTrust Premium\n"
+    cert += "# AffirmTrust Premium\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFRjCCAy6gAwIBAgIIbYwURrGmCu4wDQYJKoZIhvcNAQEMBQAwQTELMAkGA1UE\n"
             "BhMCVVMxFDASBgNVBAoMC0FmZmlybVRydXN0MRwwGgYDVQQDDBNBZmZpcm1UcnVz\n"
@@ -207,8 +199,7 @@ namespace detail
             "KeC2uAloGRwYQw==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# AffirmTrust Premium ECC\n"
+    cert += "# AffirmTrust Premium ECC\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIB/jCCAYWgAwIBAgIIdJclisc/elQwCgYIKoZIzj0EAwMwRTELMAkGA1UEBhMC\n"
             "VVMxFDASBgNVBAoMC0FmZmlybVRydXN0MSAwHgYDVQQDDBdBZmZpcm1UcnVzdCBQ\n"
@@ -223,8 +214,7 @@ namespace detail
             "flc9nF9Ca/UHLbXwgpP5WW+uZPpY5Yse42O+tYHNbwKMeQ==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Amazon Root CA 1\n"
+    cert += "# Amazon Root CA 1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDQTCCAimgAwIBAgITBmyfz5m/jAo54vB4ikPmljZbyjANBgkqhkiG9w0BAQsF\n"
             "ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6\n"
@@ -246,8 +236,7 @@ namespace detail
             "rqXRfboQnoZsG4q5WTP468SQvvG5\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Amazon Root CA 2\n"
+    cert += "# Amazon Root CA 2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFQTCCAymgAwIBAgITBmyf0pY1hp8KD+WGePhbJruKNzANBgkqhkiG9w0BAQwF\n"
             "ADA5MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6\n"
@@ -280,8 +269,7 @@ namespace detail
             "4PsJYGw=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Amazon Root CA 3\n"
+    cert += "# Amazon Root CA 3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIBtjCCAVugAwIBAgITBmyf1XSXNmY/Owua2eiedgPySjAKBggqhkjOPQQDAjA5\n"
             "MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6b24g\n"
@@ -295,8 +283,7 @@ namespace detail
             "YyRIHN8wfdVoOw==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Amazon Root CA 4\n"
+    cert += "# Amazon Root CA 4\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIB8jCCAXigAwIBAgITBmyf18G7EEwpQ+Vxe3ssyBrBDjAKBggqhkjOPQQDAzA5\n"
             "MQswCQYDVQQGEwJVUzEPMA0GA1UEChMGQW1hem9uMRkwFwYDVQQDExBBbWF6b24g\n"
@@ -311,8 +298,7 @@ namespace detail
             "1KyLa2tJElMzrdfkviT8tQp21KW8EA==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Atos TrustedRoot 2011\n"
+    cert += "# Atos TrustedRoot 2011\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDdzCCAl+gAwIBAgIIXDPLYixfszIwDQYJKoZIhvcNAQELBQAwPDEeMBwGA1UE\n"
             "AwwVQXRvcyBUcnVzdGVkUm9vdCAyMDExMQ0wCwYDVQQKDARBdG9zMQswCQYDVQQG\n"
@@ -335,8 +321,7 @@ namespace detail
             "KrcYPqcZ2Qt9sTdBQrC6YB3y/gkRsPCHe6ed\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Autoridad de Certificacion Firmaprofesional CIF A62634068\n"
+    cert += "# Autoridad de Certificacion Firmaprofesional CIF A62634068\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIGFDCCA/ygAwIBAgIIU+w77vuySF8wDQYJKoZIhvcNAQEFBQAwUTELMAkGA1UE\n"
             "BhMCRVMxQjBABgNVBAMMOUF1dG9yaWRhZCBkZSBDZXJ0aWZpY2FjaW9uIEZpcm1h\n"
@@ -373,8 +358,7 @@ namespace detail
             "jLMi6Et8Vcad+qMUu2WFbm5PEn4KPJ2V\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Baltimore CyberTrust Root\n"
+    cert += "# Baltimore CyberTrust Root\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDdzCCAl+gAwIBAgIEAgAAuTANBgkqhkiG9w0BAQUFADBaMQswCQYDVQQGEwJJ\n"
             "RTESMBAGA1UEChMJQmFsdGltb3JlMRMwEQYDVQQLEwpDeWJlclRydXN0MSIwIAYD\n"
@@ -397,8 +381,7 @@ namespace detail
             "R9I4LtD+gdwyah617jzV/OeBHRnDJELqYzmp\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Buypass Class 2 Root CA\n"
+    cert += "# Buypass Class 2 Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFWTCCA0GgAwIBAgIBAjANBgkqhkiG9w0BAQsFADBOMQswCQYDVQQGEwJOTzEd\n"
             "MBsGA1UECgwUQnV5cGFzcyBBUy05ODMxNjMzMjcxIDAeBgNVBAMMF0J1eXBhc3Mg\n"
@@ -431,8 +414,7 @@ namespace detail
             "Y11aWOIv4x3kqdbQCtCev9eBCfHJxyYNrJgWVqA=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Buypass Class 3 Root CA\n"
+    cert += "# Buypass Class 3 Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFWTCCA0GgAwIBAgIBAjANBgkqhkiG9w0BAQsFADBOMQswCQYDVQQGEwJOTzEd\n"
             "MBsGA1UECgwUQnV5cGFzcyBBUy05ODMxNjMzMjcxIDAeBgNVBAMMF0J1eXBhc3Mg\n"
@@ -465,8 +447,7 @@ namespace detail
             "4/g7u9xN12TyUb7mqqta6THuBrxzvxNiCp/HuZc=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# CA Disig Root R2\n"
+    cert += "# CA Disig Root R2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFaTCCA1GgAwIBAgIJAJK4iNuwisFjMA0GCSqGSIb3DQEBCwUAMFIxCzAJBgNV\n"
             "BAYTAlNLMRMwEQYDVQQHEwpCcmF0aXNsYXZhMRMwEQYDVQQKEwpEaXNpZyBhLnMu\n"
@@ -499,8 +480,7 @@ namespace detail
             "L4ysEr3vQCj8KWefshNPZiTEUxnpHikV7+ZtsH8tZ/3zbBt1RqPlShfppNcL\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# CFCA EV ROOT\n"
+    cert += "# CFCA EV ROOT\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFjTCCA3WgAwIBAgIEGErM1jANBgkqhkiG9w0BAQsFADBWMQswCQYDVQQGEwJD\n"
             "TjEwMC4GA1UECgwnQ2hpbmEgRmluYW5jaWFsIENlcnRpZmljYXRpb24gQXV0aG9y\n"
@@ -534,8 +514,7 @@ namespace detail
             "5nbv0CO7O6l5s9UCKc2Jo5YPSjXnTkLAdc0Hz+Ys63su\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# COMODO Certification Authority\n"
+    cert += "# COMODO Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEHTCCAwWgAwIBAgIQToEtioJl4AsC7j41AkblPTANBgkqhkiG9w0BAQUFADCB\n"
             "gTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4G\n"
@@ -562,8 +541,7 @@ namespace detail
             "ZQ==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# COMODO ECC Certification Authority\n"
+    cert += "# COMODO ECC Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICiTCCAg+gAwIBAgIQH0evqmIAcFBUTAGem2OZKjAKBggqhkjOPQQDAzCBhTEL\n"
             "MAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4GA1UE\n"
@@ -581,8 +559,7 @@ namespace detail
             "GDeAU/7dIOA1mjbRxwG55tzd8/8dLDoWV9mSOdY=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# COMODO RSA Certification Authority\n"
+    cert += "# COMODO RSA Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIF2DCCA8CgAwIBAgIQTKr5yttjb+Af907YWwOGnTANBgkqhkiG9w0BAQwFADCB\n"
             "hTELMAkGA1UEBhMCR0IxGzAZBgNVBAgTEkdyZWF0ZXIgTWFuY2hlc3RlcjEQMA4G\n"
@@ -618,8 +595,7 @@ namespace detail
             "NVOFBkpdn627G190\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Certigna\n"
+    cert += "# Certigna\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDqDCCApCgAwIBAgIJAP7c4wEPyUj/MA0GCSqGSIb3DQEBBQUAMDQxCzAJBgNV\n"
             "BAYTAkZSMRIwEAYDVQQKDAlEaGlteW90aXMxETAPBgNVBAMMCENlcnRpZ25hMB4X\n"
@@ -643,8 +619,7 @@ namespace detail
             "WyH8EZE0vkHve52Xdf+XlcCWWC/qu0bXu+TZLg==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Certigna Root CA\n"
+    cert += "# Certigna Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIGWzCCBEOgAwIBAgIRAMrpG4nxVQMNo+ZBbcTjpuEwDQYJKoZIhvcNAQELBQAw\n"
             "WjELMAkGA1UEBhMCRlIxEjAQBgNVBAoMCURoaW15b3RpczEcMBoGA1UECwwTMDAw\n"
@@ -682,8 +657,7 @@ namespace detail
             "3kAP+HwV96LOPNdeE4yBFxgX0b3xdxA61GU5wSesVywlVP+i2k+KYTlerj1KjL0=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Certum Trusted Network CA\n"
+    cert += "# Certum Trusted Network CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDuzCCAqOgAwIBAgIDBETAMA0GCSqGSIb3DQEBBQUAMH4xCzAJBgNVBAYTAlBM\n"
             "MSIwIAYDVQQKExlVbml6ZXRvIFRlY2hub2xvZ2llcyBTLkEuMScwJQYDVQQLEx5D\n"
@@ -707,8 +681,7 @@ namespace detail
             "03YnnZotBqbJ7DnSq9ufmgsnAjUpsUCV5/nonFWIGUbWtzT1fs45mtk48VH3Tyw=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Certum Trusted Network CA 2\n"
+    cert += "# Certum Trusted Network CA 2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIF0jCCA7qgAwIBAgIQIdbQSk8lD8kyN/yqXhKN6TANBgkqhkiG9w0BAQ0FADCB\n"
             "gDELMAkGA1UEBhMCUEwxIjAgBgNVBAoTGVVuaXpldG8gVGVjaG5vbG9naWVzIFMu\n"
@@ -744,8 +717,7 @@ namespace detail
             "DrW5viSP\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Chambers of Commerce Root - 2008\n"
+    cert += "# Chambers of Commerce Root - 2008\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIHTzCCBTegAwIBAgIJAKPaQn6ksa7aMA0GCSqGSIb3DQEBBQUAMIGuMQswCQYD\n"
             "VQQGEwJFVTFDMEEGA1UEBxM6TWFkcmlkIChzZWUgY3VycmVudCBhZGRyZXNzIGF0\n"
@@ -789,8 +761,7 @@ namespace detail
             "d0jQ\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Comodo AAA Services root\n"
+    cert += "# Comodo AAA Services root\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEMjCCAxqgAwIBAgIBATANBgkqhkiG9w0BAQUFADB7MQswCQYDVQQGEwJHQjEb\n"
             "MBkGA1UECAwSR3JlYXRlciBNYW5jaGVzdGVyMRAwDgYDVQQHDAdTYWxmb3JkMRow\n"
@@ -817,8 +788,7 @@ namespace detail
             "smPi9WIsgtRqAEFQ8TmDn5XpNpaYbg==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Cybertrust Global Root\n"
+    cert += "# Cybertrust Global Root\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDoTCCAomgAwIBAgILBAAAAAABD4WqLUgwDQYJKoZIhvcNAQEFBQAwOzEYMBYG\n"
             "A1UEChMPQ3liZXJ0cnVzdCwgSW5jMR8wHQYDVQQDExZDeWJlcnRydXN0IEdsb2Jh\n"
@@ -842,8 +812,7 @@ namespace detail
             "WL1WMRJOEcgh4LMRkWXbtKaIOM5V\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# D-TRUST Root Class 3 CA 2 2009\n"
+    cert += "# D-TRUST Root Class 3 CA 2 2009\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEMzCCAxugAwIBAgIDCYPzMA0GCSqGSIb3DQEBCwUAME0xCzAJBgNVBAYTAkRF\n"
             "MRUwEwYDVQQKDAxELVRydXN0IEdtYkgxJzAlBgNVBAMMHkQtVFJVU1QgUm9vdCBD\n"
@@ -870,8 +839,7 @@ namespace detail
             "Johw1+qRzT65ysCQblrGXnRl11z+o+I=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# D-TRUST Root Class 3 CA 2 EV 2009\n"
+    cert += "# D-TRUST Root Class 3 CA 2 EV 2009\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEQzCCAyugAwIBAgIDCYP0MA0GCSqGSIb3DQEBCwUAMFAxCzAJBgNVBAYTAkRF\n"
             "MRUwEwYDVQQKDAxELVRydXN0IEdtYkgxKjAoBgNVBAMMIUQtVFJVU1QgUm9vdCBD\n"
@@ -898,8 +866,7 @@ namespace detail
             "KVwvvoFBuYz/6n1gBp7N1z3TLqMVvKjmJuVvw9y4AyHqnxbxLFS1\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# DST Root CA X3\n"
+    cert += "# DST Root CA X3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDSjCCAjKgAwIBAgIQRK+wgNajJ7qJMDmGLvhAazANBgkqhkiG9w0BAQUFADA/\n"
             "MSQwIgYDVQQKExtEaWdpdGFsIFNpZ25hdHVyZSBUcnVzdCBDby4xFzAVBgNVBAMT\n"
@@ -921,8 +888,7 @@ namespace detail
             "Ob8VZRzI9neWagqNdwvYkQsEjgfbKbYK7p2CNTUQ\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# DigiCert Assured ID Root CA\n"
+    cert += "# DigiCert Assured ID Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDtzCCAp+gAwIBAgIQDOfg5RfYRv6P5WD8G/AwOTANBgkqhkiG9w0BAQUFADBl\n"
             "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
@@ -946,8 +912,7 @@ namespace detail
             "+o0bJW1sj6W3YQGx0qMmoRBxna3iw/nDmVG3KwcIzi7mULKn+gpFL6Lw8g==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# DigiCert Assured ID Root G2\n"
+    cert += "# DigiCert Assured ID Root G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDljCCAn6gAwIBAgIQC5McOtY5Z+pnI7/Dr5r0SzANBgkqhkiG9w0BAQsFADBl\n"
             "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
@@ -971,8 +936,7 @@ namespace detail
             "IhNzbM8m9Yop5w==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# DigiCert Assured ID Root G3\n"
+    cert += "# DigiCert Assured ID Root G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICRjCCAc2gAwIBAgIQC6Fa+h3foLVJRK/NJKBs7DAKBggqhkjOPQQDAzBlMQsw\n"
             "CQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3d3cu\n"
@@ -989,8 +953,7 @@ namespace detail
             "6pZjamVFkpUBtA==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# DigiCert Global Root CA\n"
+    cert += "# DigiCert Global Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDrzCCApegAwIBAgIQCDvgVpBCRrGhdWrJWZHHSjANBgkqhkiG9w0BAQUFADBh\n"
             "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
@@ -1014,8 +977,7 @@ namespace detail
             "CAUw7C29C79Fv1C5qfPrmAESrciIxpg0X40KPMbp1ZWVbd4=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# DigiCert Global Root G2\n"
+    cert += "# DigiCert Global Root G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDjjCCAnagAwIBAgIQAzrx5qcRqaC7KGSxHQn65TANBgkqhkiG9w0BAQsFADBh\n"
             "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
@@ -1039,8 +1001,7 @@ namespace detail
             "MrY=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# DigiCert Global Root G3\n"
+    cert += "# DigiCert Global Root G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICPzCCAcWgAwIBAgIQBVVWvPJepDU1w6QP1atFcjAKBggqhkjOPQQDAzBhMQsw\n"
             "CQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3d3cu\n"
@@ -1057,8 +1018,7 @@ namespace detail
             "sycX\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# DigiCert High Assurance EV Root CA\n"
+    cert += "# DigiCert High Assurance EV Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDxTCCAq2gAwIBAgIQAqxcJmoLQJuPC3nyrkYldzANBgkqhkiG9w0BAQUFADBs\n"
             "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
@@ -1083,8 +1043,7 @@ namespace detail
             "+OkuE6N36B9K\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# DigiCert Trusted Root G4\n"
+    cert += "# DigiCert Trusted Root G4\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFkDCCA3igAwIBAgIQBZsbV56OITLiOQe9p3d1XDANBgkqhkiG9w0BAQwFADBi\n"
             "MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3\n"
@@ -1118,8 +1077,7 @@ namespace detail
             "gKDWHrO8Dw9TdSmq6hN35N6MgSGtBxBHEa2HPQfRdbzP82Z+\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# E-Tugra Certification Authority\n"
+    cert += "# E-Tugra Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIGSzCCBDOgAwIBAgIIamg+nFGby1MwDQYJKoZIhvcNAQELBQAwgbIxCzAJBgNV\n"
             "BAYTAlRSMQ8wDQYDVQQHDAZBbmthcmExQDA+BgNVBAoMN0UtVHXEn3JhIEVCRyBC\n"
@@ -1157,8 +1115,7 @@ namespace detail
             "NL/+I5c30jn6PQ0GC7TbO6Orb1wdtn7os4I07QZcJA==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# EC-ACC\n"
+    cert += "# EC-ACC\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFVjCCBD6gAwIBAgIQ7is969Qh3hSoYqwE893EATANBgkqhkiG9w0BAQUFADCB\n"
             "8zELMAkGA1UEBhMCRVMxOzA5BgNVBAoTMkFnZW5jaWEgQ2F0YWxhbmEgZGUgQ2Vy\n"
@@ -1191,8 +1148,7 @@ namespace detail
             "nJ2lYJU6Un/10asIbvPuW/mIPX64b24D5EI=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# EE Certification Centre Root CA\n"
+    cert += "# EE Certification Centre Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEAzCCAuugAwIBAgIQVID5oHPtPwBMyonY43HmSjANBgkqhkiG9w0BAQUFADB1\n"
             "MQswCQYDVQQGEwJFRTEiMCAGA1UECgwZQVMgU2VydGlmaXRzZWVyaW1pc2tlc2t1\n"
@@ -1218,8 +1174,7 @@ namespace detail
             "GVCJYMzpJJUPwssd8m92kMfMdcGWxZ0=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Entrust.net Premium 2048 Secure Server CA\n"
+    cert += "# Entrust.net Premium 2048 Secure Server CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEKjCCAxKgAwIBAgIEOGPe+DANBgkqhkiG9w0BAQUFADCBtDEUMBIGA1UEChML\n"
             "RW50cnVzdC5uZXQxQDA+BgNVBAsUN3d3dy5lbnRydXN0Lm5ldC9DUFNfMjA0OCBp\n"
@@ -1246,8 +1201,7 @@ namespace detail
             "fF6adulZkMV8gzURZVE=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Entrust Root Certification Authority\n"
+    cert += "# Entrust Root Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEkTCCA3mgAwIBAgIERWtQVDANBgkqhkiG9w0BAQUFADCBsDELMAkGA1UEBhMC\n"
             "VVMxFjAUBgNVBAoTDUVudHJ1c3QsIEluYy4xOTA3BgNVBAsTMHd3dy5lbnRydXN0\n"
@@ -1276,8 +1230,7 @@ namespace detail
             "0vdXcDazv/wor3ElhVsT/h5/WrQ8\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Entrust Root Certification Authority - EC1\n"
+    cert += "# Entrust Root Certification Authority - EC1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIC+TCCAoCgAwIBAgINAKaLeSkAAAAAUNCR+TAKBggqhkjOPQQDAzCBvzELMAkG\n"
             "A1UEBhMCVVMxFjAUBgNVBAoTDUVudHJ1c3QsIEluYy4xKDAmBgNVBAsTH1NlZSB3\n"
@@ -1297,8 +1250,7 @@ namespace detail
             "hTcGtXsI/esni0qU+eH6p44mCOh8kmhtc9hvJqwhAriZtyZBWyVgrtBIGu4G\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Entrust Root Certification Authority - G2\n"
+    cert += "# Entrust Root Certification Authority - G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEPjCCAyagAwIBAgIESlOMKDANBgkqhkiG9w0BAQsFADCBvjELMAkGA1UEBhMC\n"
             "VVMxFjAUBgNVBAoTDUVudHJ1c3QsIEluYy4xKDAmBgNVBAsTH1NlZSB3d3cuZW50\n"
@@ -1325,8 +1277,7 @@ namespace detail
             "VHOkc8KT/1EQrBVUAdj8BbGJoX90g5pJ19xOe4pIb4tF9g==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Entrust Root Certification Authority - G4\n"
+    cert += "# Entrust Root Certification Authority - G4\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIGSzCCBDOgAwIBAgIRANm1Q3+vqTkPAAAAAFVlrVgwDQYJKoZIhvcNAQELBQAw\n"
             "gb4xCzAJBgNVBAYTAlVTMRYwFAYDVQQKEw1FbnRydXN0LCBJbmMuMSgwJgYDVQQL\n"
@@ -1364,8 +1315,7 @@ namespace detail
             "n/PIjhs4ViFqUZPTkcpG2om3PVODLAgfi49T3f+sHw==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GDCA TrustAUTH R5 ROOT\n"
+    cert += "# GDCA TrustAUTH R5 ROOT\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFiDCCA3CgAwIBAgIIfQmX/vBH6nowDQYJKoZIhvcNAQELBQAwYjELMAkGA1UE\n"
             "BhMCQ04xMjAwBgNVBAoMKUdVQU5HIERPTkcgQ0VSVElGSUNBVEUgQVVUSE9SSVRZ\n"
@@ -1399,8 +1349,7 @@ namespace detail
             "MTd61X8kreS8/f3MboPoDKi3QWwH3b08hpcv0g==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GTS Root R1\n"
+    cert += "# GTS Root R1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFWjCCA0KgAwIBAgIQbkepxUtHDA3sM9CJuRz04TANBgkqhkiG9w0BAQwFADBH\n"
             "MQswCQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExM\n"
@@ -1433,8 +1382,7 @@ namespace detail
             "E3PYJ/HQcu51OyLemGhmW/HGY0dVHLqlCFF1pkgl\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GTS Root R2\n"
+    cert += "# GTS Root R2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFWjCCA0KgAwIBAgIQbkepxlqz5yDFMJo/aFLybzANBgkqhkiG9w0BAQwFADBH\n"
             "MQswCQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExM\n"
@@ -1467,8 +1415,7 @@ namespace detail
             "yOd/xCxgXS/Dr55FBcOEArf9LAhST4Ldo/DUhgkC\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GTS Root R3\n"
+    cert += "# GTS Root R3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICDDCCAZGgAwIBAgIQbkepx2ypcyRAiQ8DVd2NHTAKBggqhkjOPQQDAzBHMQsw\n"
             "CQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExMQzEU\n"
@@ -1483,8 +1430,7 @@ namespace detail
             "njWSdIUlUfUk7GRSJFClH9voy8l27OyCbvWFGFPouOOaKaqW04MjyaR7YbPMAuhd\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GTS Root R4\n"
+    cert += "# GTS Root R4\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICCjCCAZGgAwIBAgIQbkepyIuUtui7OyrYorLBmTAKBggqhkjOPQQDAzBHMQsw\n"
             "CQYDVQQGEwJVUzEiMCAGA1UEChMZR29vZ2xlIFRydXN0IFNlcnZpY2VzIExMQzEU\n"
@@ -1499,8 +1445,7 @@ namespace detail
             "sbqjYAuG7ZoIapVon+Kz4ZNkfF6Tpt95LY2F45TPI11xzPKwTdb+mciUqXWi4w==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GeoTrust Global CA\n"
+    cert += "# GeoTrust Global CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDVDCCAjygAwIBAgIDAjRWMA0GCSqGSIb3DQEBBQUAMEIxCzAJBgNVBAYTAlVT\n"
             "MRYwFAYDVQQKEw1HZW9UcnVzdCBJbmMuMRswGQYDVQQDExJHZW9UcnVzdCBHbG9i\n"
@@ -1522,8 +1467,7 @@ namespace detail
             "5fEWCRE11azbJHFwLJhWC9kXtNHjUStedejV0NxPNO3CBWaAocvmMw==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GeoTrust Primary Certification Authority\n"
+    cert += "# GeoTrust Primary Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDfDCCAmSgAwIBAgIQGKy1av1pthU6Y2yv2vrEoTANBgkqhkiG9w0BAQUFADBY\n"
             "MQswCQYDVQQGEwJVUzEWMBQGA1UEChMNR2VvVHJ1c3QgSW5jLjExMC8GA1UEAxMo\n"
@@ -1546,8 +1490,7 @@ namespace detail
             "AT6A8EKglQdebc3MS6RFjasS6LPeWuWgfOgPIh1a6Vk=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GeoTrust Primary Certification Authority - G2\n"
+    cert += "# GeoTrust Primary Certification Authority - G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICrjCCAjWgAwIBAgIQPLL0SAoA4v7rJDteYD7DazAKBggqhkjOPQQDAzCBmDEL\n"
             "MAkGA1UEBhMCVVMxFjAUBgNVBAoTDUdlb1RydXN0IEluYy4xOTA3BgNVBAsTMChj\n"
@@ -1566,8 +1509,7 @@ namespace detail
             "rD6ogRLQy7rQkgu2npaqBA+K\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GeoTrust Primary Certification Authority - G3\n"
+    cert += "# GeoTrust Primary Certification Authority - G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIID/jCCAuagAwIBAgIQFaxulBmyeUtB9iepwxgPHzANBgkqhkiG9w0BAQsFADCB\n"
             "mDELMAkGA1UEBhMCVVMxFjAUBgNVBAoTDUdlb1RydXN0IEluYy4xOTA3BgNVBAsT\n"
@@ -1593,8 +1535,7 @@ namespace detail
             "spki4cErx5z481+oghLrGREt\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GeoTrust Universal CA\n"
+    cert += "# GeoTrust Universal CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFaDCCA1CgAwIBAgIBATANBgkqhkiG9w0BAQUFADBFMQswCQYDVQQGEwJVUzEW\n"
             "MBQGA1UEChMNR2VvVHJ1c3QgSW5jLjEeMBwGA1UEAxMVR2VvVHJ1c3QgVW5pdmVy\n"
@@ -1627,8 +1568,7 @@ namespace detail
             "bJxPgWp6ZKy7PtXny3YuxadIwVyQD8vIP/rmMuGNG2+k5o7Y+SlIis5z/iw=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GeoTrust Universal CA 2\n"
+    cert += "# GeoTrust Universal CA 2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFbDCCA1SgAwIBAgIBATANBgkqhkiG9w0BAQUFADBHMQswCQYDVQQGEwJVUzEW\n"
             "MBQGA1UEChMNR2VvVHJ1c3QgSW5jLjEgMB4GA1UEAxMXR2VvVHJ1c3QgVW5pdmVy\n"
@@ -1661,8 +1601,7 @@ namespace detail
             "QMAJKOSLakhT2+zNVVXxxvjpoixMptEmX36vWkzaH6byHCx+rgIW0lbQL1dTR+iS\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GlobalSign ECC Root CA - R4\n"
+    cert += "# GlobalSign ECC Root CA - R4\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIB4TCCAYegAwIBAgIRKjikHJYKBN5CsiilC+g0mAIwCgYIKoZIzj0EAwIwUDEk\n"
             "MCIGA1UECxMbR2xvYmFsU2lnbiBFQ0MgUm9vdCBDQSAtIFI0MRMwEQYDVQQKEwpH\n"
@@ -1677,8 +1616,7 @@ namespace detail
             "ewv4n4Q=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GlobalSign ECC Root CA - R5\n"
+    cert += "# GlobalSign ECC Root CA - R5\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICHjCCAaSgAwIBAgIRYFlJ4CYuu1X5CneKcflK2GwwCgYIKoZIzj0EAwMwUDEk\n"
             "MCIGA1UECxMbR2xvYmFsU2lnbiBFQ0MgUm9vdCBDQSAtIFI1MRMwEQYDVQQKEwpH\n"
@@ -1694,8 +1632,7 @@ namespace detail
             "xwy8p2Fp8fc74SrL+SvzZpA3\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GlobalSign Root CA\n"
+    cert += "# GlobalSign Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDdTCCAl2gAwIBAgILBAAAAAABFUtaw5QwDQYJKoZIhvcNAQEFBQAwVzELMAkG\n"
             "A1UEBhMCQkUxGTAXBgNVBAoTEEdsb2JhbFNpZ24gbnYtc2ExEDAOBgNVBAsTB1Jv\n"
@@ -1718,8 +1655,7 @@ namespace detail
             "HMUfpIBvFSDJ3gyICh3WZlXi/EjJKSZp4A==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GlobalSign Root CA - R2\n"
+    cert += "# GlobalSign Root CA - R2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDujCCAqKgAwIBAgILBAAAAAABD4Ym5g0wDQYJKoZIhvcNAQEFBQAwTDEgMB4G\n"
             "A1UECxMXR2xvYmFsU2lnbiBSb290IENBIC0gUjIxEzARBgNVBAoTCkdsb2JhbFNp\n"
@@ -1743,8 +1679,7 @@ namespace detail
             "TBj0/VLZjmmx6BEP3ojY+x1J96relc8geMJgEtslQIxq/H5COEBkEveegeGTLg==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GlobalSign Root CA - R3\n"
+    cert += "# GlobalSign Root CA - R3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDXzCCAkegAwIBAgILBAAAAAABIVhTCKIwDQYJKoZIhvcNAQELBQAwTDEgMB4G\n"
             "A1UECxMXR2xvYmFsU2lnbiBSb290IENBIC0gUjMxEzARBgNVBAoTCkdsb2JhbFNp\n"
@@ -1767,8 +1702,7 @@ namespace detail
             "WD9f\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# GlobalSign Root CA - R6\n"
+    cert += "# GlobalSign Root CA - R6\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFgzCCA2ugAwIBAgIORea7A4Mzw4VlSOb/RVEwDQYJKoZIhvcNAQEMBQAwTDEg\n"
             "MB4GA1UECxMXR2xvYmFsU2lnbiBSb290IENBIC0gUjYxEzARBgNVBAoTCkdsb2Jh\n"
@@ -1802,8 +1736,7 @@ namespace detail
             "5hpxbqCo8YLoRT5s1gLXCmeDBVrJpBA=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Global Chambersign Root - 2008\n"
+    cert += "# Global Chambersign Root - 2008\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIHSTCCBTGgAwIBAgIJAMnN0+nVfSPOMA0GCSqGSIb3DQEBBQUAMIGsMQswCQYD\n"
             "VQQGEwJFVTFDMEEGA1UEBxM6TWFkcmlkIChzZWUgY3VycmVudCBhZGRyZXNzIGF0\n"
@@ -1846,8 +1779,7 @@ namespace detail
             "09gwzxMNTxXJhLynSC34MCN32EZLeW32jO06f2ARePTpm67VVMB0gNELQp/B\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Go Daddy Class 2 CA\n"
+    cert += "# Go Daddy Class 2 CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEADCCAuigAwIBAgIBADANBgkqhkiG9w0BAQUFADBjMQswCQYDVQQGEwJVUzEh\n"
             "MB8GA1UEChMYVGhlIEdvIERhZGR5IEdyb3VwLCBJbmMuMTEwLwYDVQQLEyhHbyBE\n"
@@ -1873,8 +1805,7 @@ namespace detail
             "ReYNnyicsbkqWletNw+vHX/bvZ8=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Go Daddy Root Certificate Authority - G2\n"
+    cert += "# Go Daddy Root Certificate Authority - G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDxTCCAq2gAwIBAgIBADANBgkqhkiG9w0BAQsFADCBgzELMAkGA1UEBhMCVVMx\n"
             "EDAOBgNVBAgTB0FyaXpvbmExEzARBgNVBAcTClNjb3R0c2RhbGUxGjAYBgNVBAoT\n"
@@ -1899,8 +1830,7 @@ namespace detail
             "4uJEvlz36hz1\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Hellenic Academic and Research Institutions ECC RootCA 2015\n"
+    cert += "# Hellenic Academic and Research Institutions ECC RootCA 2015\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICwzCCAkqgAwIBAgIBADAKBggqhkjOPQQDAjCBqjELMAkGA1UEBhMCR1IxDzAN\n"
             "BgNVBAcTBkF0aGVuczFEMEIGA1UEChM7SGVsbGVuaWMgQWNhZGVtaWMgYW5kIFJl\n"
@@ -1919,8 +1849,7 @@ namespace detail
             "TUwJCA3sS61kFyjndc5FZXIhF8siQQ6ME5g4mlRtm8rifOoCWCKR\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Hellenic Academic and Research Institutions RootCA 2011\n"
+    cert += "# Hellenic Academic and Research Institutions RootCA 2011\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEMTCCAxmgAwIBAgIBADANBgkqhkiG9w0BAQUFADCBlTELMAkGA1UEBhMCR1Ix\n"
             "RDBCBgNVBAoTO0hlbGxlbmljIEFjYWRlbWljIGFuZCBSZXNlYXJjaCBJbnN0aXR1\n"
@@ -1947,8 +1876,7 @@ namespace detail
             "l7WdmplNsDz4SgCbZN2fOUvRJ9e4\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Hellenic Academic and Research Institutions RootCA 2015\n"
+    cert += "# Hellenic Academic and Research Institutions RootCA 2015\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIGCzCCA/OgAwIBAgIBADANBgkqhkiG9w0BAQsFADCBpjELMAkGA1UEBhMCR1Ix\n"
             "DzANBgNVBAcTBkF0aGVuczFEMEIGA1UEChM7SGVsbGVuaWMgQWNhZGVtaWMgYW5k\n"
@@ -1985,8 +1913,7 @@ namespace detail
             "vm9qp/UsQu0yrbYhnr68\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Hongkong Post Root CA 1\n"
+    cert += "# Hongkong Post Root CA 1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDMDCCAhigAwIBAgICA+gwDQYJKoZIhvcNAQEFBQAwRzELMAkGA1UEBhMCSEsx\n"
             "FjAUBgNVBAoTDUhvbmdrb25nIFBvc3QxIDAeBgNVBAMTF0hvbmdrb25nIFBvc3Qg\n"
@@ -2008,8 +1935,7 @@ namespace detail
             "AmvZWg==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Hongkong Post Root CA 3\n"
+    cert += "# Hongkong Post Root CA 3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFzzCCA7egAwIBAgIUCBZfikyl7ADJk0DfxMauI7gcWqQwDQYJKoZIhvcNAQEL\n"
             "BQAwbzELMAkGA1UEBhMCSEsxEjAQBgNVBAgTCUhvbmcgS29uZzESMBAGA1UEBxMJ\n"
@@ -2045,8 +1971,7 @@ namespace detail
             "mpv0\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# ISRG Root X1\n"
+    cert += "# ISRG Root X1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFazCCA1OgAwIBAgIRAIIQz7DSQONZRGPgu2OCiwAwDQYJKoZIhvcNAQELBQAw\n"
             "TzELMAkGA1UEBhMCVVMxKTAnBgNVBAoTIEludGVybmV0IFNlY3VyaXR5IFJlc2Vh\n"
@@ -2079,8 +2004,7 @@ namespace detail
             "emyPxgcYxn/eR44/KJ4EBs+lVDR3veyJm+kXQ99b21/+jh5Xos1AnX5iItreGCc=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# IdenTrust Commercial Root CA 1\n"
+    cert += "# IdenTrust Commercial Root CA 1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFYDCCA0igAwIBAgIQCgFCgAAAAUUjyES1AAAAAjANBgkqhkiG9w0BAQsFADBK\n"
             "MQswCQYDVQQGEwJVUzESMBAGA1UEChMJSWRlblRydXN0MScwJQYDVQQDEx5JZGVu\n"
@@ -2113,8 +2037,7 @@ namespace detail
             "7/qxXDgGpRtK4dw4LTzcqx+QGtVKnO7RcGzM7vRX+Bi6hG6H\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# IdenTrust Public Sector Root CA 1\n"
+    cert += "# IdenTrust Public Sector Root CA 1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFZjCCA06gAwIBAgIQCgFCgAAAAUUjz0Z8AAAAAjANBgkqhkiG9w0BAQsFADBN\n"
             "MQswCQYDVQQGEwJVUzESMBAGA1UEChMJSWRlblRydXN0MSowKAYDVQQDEyFJZGVu\n"
@@ -2147,8 +2070,7 @@ namespace detail
             "8Ue1fXwsBOxonbRJRBD0ckscZOf85muQ3Wl9af0AVqW3rLatt8o+Ae+c\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Izenpe.com\n"
+    cert += "# Izenpe.com\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIF8TCCA9mgAwIBAgIQALC3WhZIX7/hy/WL1xnmfTANBgkqhkiG9w0BAQsFADA4\n"
             "MQswCQYDVQQGEwJFUzEUMBIGA1UECgwLSVpFTlBFIFMuQS4xEzARBgNVBAMMCkl6\n"
@@ -2184,8 +2106,7 @@ namespace detail
             "QyYBNWNgVYkDOnXYukrZVP/u3oDYLdE41V4tC5h9Pmzb/CaIxw==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# LuxTrust Global Root 2\n"
+    cert += "# LuxTrust Global Root 2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFwzCCA6ugAwIBAgIUCn6m30tEntpqJIWe5rgV0xZ/u7EwDQYJKoZIhvcNAQEL\n"
             "BQAwRjELMAkGA1UEBhMCTFUxFjAUBgNVBAoMDUx1eFRydXN0IFMuQS4xHzAdBgNV\n"
@@ -2220,8 +2141,7 @@ namespace detail
             "oJO9r4Ak4Ap+58rVyuiFVdw2KuGUaJPHZnJED4AhMmwlxyOAgwrr\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Microsec e-Szigno Root CA 2009\n"
+    cert += "# Microsec e-Szigno Root CA 2009\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIECjCCAvKgAwIBAgIJAMJ+QwRORz8ZMA0GCSqGSIb3DQEBCwUAMIGCMQswCQYD\n"
             "VQQGEwJIVTERMA8GA1UEBwwIQnVkYXBlc3QxFjAUBgNVBAoMDU1pY3Jvc2VjIEx0\n"
@@ -2247,8 +2167,7 @@ namespace detail
             "HMN1Rq41Bab2XD0h7lbwyYIiLXpUq3DDfSJlgnCW\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# NetLock Arany (Class Gold) Főtanúsítvány\n"
+    cert += "# NetLock Arany (Class Gold) Főtanúsítvány\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEFTCCAv2gAwIBAgIGSUEs5AAQMA0GCSqGSIb3DQEBCwUAMIGnMQswCQYDVQQG\n"
             "EwJIVTERMA8GA1UEBwwIQnVkYXBlc3QxFTATBgNVBAoMDE5ldExvY2sgS2Z0LjE3\n"
@@ -2274,8 +2193,7 @@ namespace detail
             "XjG4Kvte9nHfRCaexOYNkbQudZWAUWpLMKawYqGT8ZvYzsRjdT9ZR7E=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Network Solutions Certificate Authority\n"
+    cert += "# Network Solutions Certificate Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIID5jCCAs6gAwIBAgIQV8szb8JcFuZHFhfjkDFo4DANBgkqhkiG9w0BAQUFADBi\n"
             "MQswCQYDVQQGEwJVUzEhMB8GA1UEChMYTmV0d29yayBTb2x1dGlvbnMgTC5MLkMu\n"
@@ -2300,8 +2218,7 @@ namespace detail
             "pGxlaKFJdlxDydi8NmdspZS11My5vWo1ViHe2MPr+8ukYEywVaCge1ey\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# OISTE WISeKey Global Root GA CA\n"
+    cert += "# OISTE WISeKey Global Root GA CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIID8TCCAtmgAwIBAgIQQT1yx/RrH4FDffHSKFTfmjANBgkqhkiG9w0BAQUFADCB\n"
             "ijELMAkGA1UEBhMCQ0gxEDAOBgNVBAoTB1dJU2VLZXkxGzAZBgNVBAsTEkNvcHly\n"
@@ -2327,8 +2244,7 @@ namespace detail
             "/L7fCg0=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# OISTE WISeKey Global Root GB CA\n"
+    cert += "# OISTE WISeKey Global Root GB CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDtTCCAp2gAwIBAgIQdrEgUnTwhYdGs/gjGvbCwDANBgkqhkiG9w0BAQsFADBt\n"
             "MQswCQYDVQQGEwJDSDEQMA4GA1UEChMHV0lTZUtleTEiMCAGA1UECxMZT0lTVEUg\n"
@@ -2352,8 +2268,7 @@ namespace detail
             "Nc1MaRVUGpCY3useX8p3x8uOPUNpnJpY0CQ73xtAln41rYHHTnG6iBM=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# OISTE WISeKey Global Root GC CA\n"
+    cert += "# OISTE WISeKey Global Root GC CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICaTCCAe+gAwIBAgIQISpWDK7aDKtARb8roi066jAKBggqhkjOPQQDAzBtMQsw\n"
             "CQYDVQQGEwJDSDEQMA4GA1UEChMHV0lTZUtleTEiMCAGA1UECxMZT0lTVEUgRm91\n"
@@ -2370,8 +2285,7 @@ namespace detail
             "Mgj/mkkCtojeFK9dbJlxjRo/i9fgojaGHAeCOnZT/cKi7e97sIBPWA9LUzm9\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# QuoVadis Root CA\n"
+    cert += "# QuoVadis Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIF0DCCBLigAwIBAgIEOrZQizANBgkqhkiG9w0BAQUFADB/MQswCQYDVQQGEwJC\n"
             "TTEZMBcGA1UEChMQUXVvVmFkaXMgTGltaXRlZDElMCMGA1UECxMcUm9vdCBDZXJ0\n"
@@ -2407,8 +2321,7 @@ namespace detail
             "SnQ2+Q==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# QuoVadis Root CA 1 G3\n"
+    cert += "# QuoVadis Root CA 1 G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFYDCCA0igAwIBAgIUeFhfLq0sGUvjNwc1NBMotZbUZZMwDQYJKoZIhvcNAQEL\n"
             "BQAwSDELMAkGA1UEBhMCQk0xGTAXBgNVBAoTEFF1b1ZhZGlzIExpbWl0ZWQxHjAc\n"
@@ -2441,8 +2354,7 @@ namespace detail
             "nh8GKjwStIsPm6Ik8KaN1nrgS7ZklmOVhMJKzRwuJIczYOXD\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# QuoVadis Root CA 2\n"
+    cert += "# QuoVadis Root CA 2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFtzCCA5+gAwIBAgICBQkwDQYJKoZIhvcNAQEFBQAwRTELMAkGA1UEBhMCQk0x\n"
             "GTAXBgNVBAoTEFF1b1ZhZGlzIExpbWl0ZWQxGzAZBgNVBAMTElF1b1ZhZGlzIFJv\n"
@@ -2477,8 +2389,7 @@ namespace detail
             "8eOx79+Rj1QqCyXBJhnEUhAFZdWCEOrCMc0u\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# QuoVadis Root CA 2 G3\n"
+    cert += "# QuoVadis Root CA 2 G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFYDCCA0igAwIBAgIURFc0JFuBiZs18s64KztbpybwdSgwDQYJKoZIhvcNAQEL\n"
             "BQAwSDELMAkGA1UEBhMCQk0xGTAXBgNVBAoTEFF1b1ZhZGlzIExpbWl0ZWQxHjAc\n"
@@ -2511,8 +2422,7 @@ namespace detail
             "WSr2Rz0ZiC3oheGe7IUIarFsNMkd7EgrO3jtZsSOeWmD3n+M\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# QuoVadis Root CA 3\n"
+    cert += "# QuoVadis Root CA 3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIGnTCCBIWgAwIBAgICBcYwDQYJKoZIhvcNAQEFBQAwRTELMAkGA1UEBhMCQk0x\n"
             "GTAXBgNVBAoTEFF1b1ZhZGlzIExpbWl0ZWQxGzAZBgNVBAMTElF1b1ZhZGlzIFJv\n"
@@ -2552,8 +2462,7 @@ namespace detail
             "4SVhM7JZG+Ju1zdXtg2pEto=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# QuoVadis Root CA 3 G3\n"
+    cert += "# QuoVadis Root CA 3 G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFYDCCA0igAwIBAgIULvWbAiin23r/1aOp7r0DoM8Sah0wDQYJKoZIhvcNAQEL\n"
             "BQAwSDELMAkGA1UEBhMCQk0xGTAXBgNVBAoTEFF1b1ZhZGlzIExpbWl0ZWQxHjAc\n"
@@ -2586,8 +2495,7 @@ namespace detail
             "ywaZWWDYWGWVjUTR939+J399roD1B0y2PpxxVJkES/1Y+Zj0\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# SSL.com EV Root Certification Authority ECC\n"
+    cert += "# SSL.com EV Root Certification Authority ECC\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIClDCCAhqgAwIBAgIILCmcWxbtBZUwCgYIKoZIzj0EAwIwfzELMAkGA1UEBhMC\n"
             "VVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdIb3VzdG9uMRgwFgYDVQQKDA9T\n"
@@ -2605,8 +2513,7 @@ namespace detail
             "h5Mmm7I1HrrW9zzRHM76JTymGoEVW/MSD2zuZYrJh6j5B+BimoxcSg==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# SSL.com EV Root Certification Authority RSA R2\n"
+    cert += "# SSL.com EV Root Certification Authority RSA R2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIF6zCCA9OgAwIBAgIIVrYpzTS8ePYwDQYJKoZIhvcNAQELBQAwgYIxCzAJBgNV\n"
             "BAYTAlVTMQ4wDAYDVQQIDAVUZXhhczEQMA4GA1UEBwwHSG91c3RvbjEYMBYGA1UE\n"
@@ -2642,8 +2549,7 @@ namespace detail
             "mKVx01QT2WDz9UtmT/rx7iASjbSsV7FFY6GsdqnC+w==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# SSL.com Root Certification Authority ECC\n"
+    cert += "# SSL.com Root Certification Authority ECC\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICjTCCAhSgAwIBAgIIdebfy8FoW6gwCgYIKoZIzj0EAwIwfDELMAkGA1UEBhMC\n"
             "VVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdIb3VzdG9uMRgwFgYDVQQKDA9T\n"
@@ -2661,8 +2567,7 @@ namespace detail
             "gA0z5Wajs6O7pdWLjwkspl1+4vAHCGht0nxpbl/f5Wpl\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# SSL.com Root Certification Authority RSA\n"
+    cert += "# SSL.com Root Certification Authority RSA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIF3TCCA8WgAwIBAgIIeyyb0xaAMpkwDQYJKoZIhvcNAQELBQAwfDELMAkGA1UE\n"
             "BhMCVVMxDjAMBgNVBAgMBVRleGFzMRAwDgYDVQQHDAdIb3VzdG9uMRgwFgYDVQQK\n"
@@ -2698,8 +2603,7 @@ namespace detail
             "Ic2wBlX7Jz9TkHCpBB5XJ7k=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# SZAFIR ROOT CA2\n"
+    cert += "# SZAFIR ROOT CA2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDcjCCAlqgAwIBAgIUPopdB+xV0jLVt+O2XwHrLdzk1uQwDQYJKoZIhvcNAQEL\n"
             "BQAwUTELMAkGA1UEBhMCUEwxKDAmBgNVBAoMH0tyYWpvd2EgSXpiYSBSb3psaWN6\n"
@@ -2722,8 +2626,7 @@ namespace detail
             "LvWpCz/UXeHPhJ/iGcJfitYgHuNztw==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# SecureSign RootCA11\n"
+    cert += "# SecureSign RootCA11\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDbTCCAlWgAwIBAgIBATANBgkqhkiG9w0BAQUFADBYMQswCQYDVQQGEwJKUDEr\n"
             "MCkGA1UEChMiSmFwYW4gQ2VydGlmaWNhdGlvbiBTZXJ2aWNlcywgSW5jLjEcMBoG\n"
@@ -2746,8 +2649,7 @@ namespace detail
             "QSdJQO7e5iNEOdyhIta6A/I=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# SecureTrust CA\n"
+    cert += "# SecureTrust CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDuDCCAqCgAwIBAgIQDPCOXAgWpa1Cf/DrJxhZ0DANBgkqhkiG9w0BAQUFADBI\n"
             "MQswCQYDVQQGEwJVUzEgMB4GA1UEChMXU2VjdXJlVHJ1c3QgQ29ycG9yYXRpb24x\n"
@@ -2771,8 +2673,7 @@ namespace detail
             "3ItHuuG51WLQoqD0ZwV4KWMabwTW+MZMo5qxN7SN5ShLHZ4swrhovO0C7jE=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Secure Global CA\n"
+    cert += "# Secure Global CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDvDCCAqSgAwIBAgIQB1YipOjUiolN9BPI8PjqpTANBgkqhkiG9w0BAQUFADBK\n"
             "MQswCQYDVQQGEwJVUzEgMB4GA1UEChMXU2VjdXJlVHJ1c3QgQ29ycG9yYXRpb24x\n"
@@ -2796,8 +2697,7 @@ namespace detail
             "f8LDmBxrThaA63p4ZUWiABqvDA1VZDRIuJK58bRQKfJPIx/abKwfROHdI3hRW8cW\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Security Communication RootCA2\n"
+    cert += "# Security Communication RootCA2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDdzCCAl+gAwIBAgIBADANBgkqhkiG9w0BAQsFADBdMQswCQYDVQQGEwJKUDEl\n"
             "MCMGA1UEChMcU0VDT00gVHJ1c3QgU3lzdGVtcyBDTy4sTFRELjEnMCUGA1UECxMe\n"
@@ -2820,8 +2720,7 @@ namespace detail
             "SjnRBUkLp7Y3gaVdjKozXoEofKd9J+sAro03\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Security Communication Root CA\n"
+    cert += "# Security Communication Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDWjCCAkKgAwIBAgIBADANBgkqhkiG9w0BAQUFADBQMQswCQYDVQQGEwJKUDEY\n"
             "MBYGA1UEChMPU0VDT00gVHJ1c3QubmV0MScwJQYDVQQLEx5TZWN1cml0eSBDb21t\n"
@@ -2843,8 +2742,7 @@ namespace detail
             "RSflMMFe8toTyyVCUZVHA4xsIcx0Qu1T/zOLjw9XARYvz6buyXAiFL39vmwLAw==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Sonera Class 2 Root CA\n"
+    cert += "# Sonera Class 2 Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDIDCCAgigAwIBAgIBHTANBgkqhkiG9w0BAQUFADA5MQswCQYDVQQGEwJGSTEP\n"
             "MA0GA1UEChMGU29uZXJhMRkwFwYDVQQDExBTb25lcmEgQ2xhc3MyIENBMB4XDTAx\n"
@@ -2865,8 +2763,7 @@ namespace detail
             "ZrUYrAqmVCY0M9IbwdR/GjqOC6oybtv8TyWf2TLHllpwrN9M\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Staat der Nederlanden EV Root CA\n"
+    cert += "# Staat der Nederlanden EV Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFcDCCA1igAwIBAgIEAJiWjTANBgkqhkiG9w0BAQsFADBYMQswCQYDVQQGEwJO\n"
             "TDEeMBwGA1UECgwVU3RhYXQgZGVyIE5lZGVybGFuZGVuMSkwJwYDVQQDDCBTdGFh\n"
@@ -2900,8 +2797,7 @@ namespace detail
             "7uzXLg==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Staat der Nederlanden Root CA - G3\n"
+    cert += "# Staat der Nederlanden Root CA - G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFdDCCA1ygAwIBAgIEAJiiOTANBgkqhkiG9w0BAQsFADBaMQswCQYDVQQGEwJO\n"
             "TDEeMBwGA1UECgwVU3RhYXQgZGVyIE5lZGVybGFuZGVuMSswKQYDVQQDDCJTdGFh\n"
@@ -2935,8 +2831,7 @@ namespace detail
             "94B7IWcnMFk=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Starfield Class 2 CA\n"
+    cert += "# Starfield Class 2 CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEDzCCAvegAwIBAgIBADANBgkqhkiG9w0BAQUFADBoMQswCQYDVQQGEwJVUzEl\n"
             "MCMGA1UEChMcU3RhcmZpZWxkIFRlY2hub2xvZ2llcywgSW5jLjEyMDAGA1UECxMp\n"
@@ -2962,8 +2857,7 @@ namespace detail
             "WQPJIrSPnNVeKtelttQKbfi3QBFGmh95DmK/D5fs4C8fF5Q=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Starfield Root Certificate Authority - G2\n"
+    cert += "# Starfield Root Certificate Authority - G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIID3TCCAsWgAwIBAgIBADANBgkqhkiG9w0BAQsFADCBjzELMAkGA1UEBhMCVVMx\n"
             "EDAOBgNVBAgTB0FyaXpvbmExEzARBgNVBAcTClNjb3R0c2RhbGUxJTAjBgNVBAoT\n"
@@ -2988,8 +2882,7 @@ namespace detail
             "mMpYjn0q7pBZc2T5NnReJaH1ZgUufzkVqSr7UIuOhWn0\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Starfield Services Root Certificate Authority - G2\n"
+    cert += "# Starfield Services Root Certificate Authority - G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIID7zCCAtegAwIBAgIBADANBgkqhkiG9w0BAQsFADCBmDELMAkGA1UEBhMCVVMx\n"
             "EDAOBgNVBAgTB0FyaXpvbmExEzARBgNVBAcTClNjb3R0c2RhbGUxJTAjBgNVBAoT\n"
@@ -3015,8 +2908,7 @@ namespace detail
             "sSi6\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# SwissSign Gold CA - G2\n"
+    cert += "# SwissSign Gold CA - G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFujCCA6KgAwIBAgIJALtAHEP1Xk+wMA0GCSqGSIb3DQEBBQUAMEUxCzAJBgNV\n"
             "BAYTAkNIMRUwEwYDVQQKEwxTd2lzc1NpZ24gQUcxHzAdBgNVBAMTFlN3aXNzU2ln\n"
@@ -3051,8 +2943,7 @@ namespace detail
             "Qc8Bsem4yWb02ybzOqR08kkkW8mw0FfB+j564ZfJ\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# SwissSign Silver CA - G2\n"
+    cert += "# SwissSign Silver CA - G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFvTCCA6WgAwIBAgIITxvUL1S7L0swDQYJKoZIhvcNAQEFBQAwRzELMAkGA1UE\n"
             "BhMCQ0gxFTATBgNVBAoTDFN3aXNzU2lnbiBBRzEhMB8GA1UEAxMYU3dpc3NTaWdu\n"
@@ -3087,8 +2978,7 @@ namespace detail
             "tGMU0gYqZ4yD9c7qB9iaah7s5Aq7KkzrCWA5zspi2C5u\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# T-TeleSec GlobalRoot Class 2\n"
+    cert += "# T-TeleSec GlobalRoot Class 2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDwzCCAqugAwIBAgIBATANBgkqhkiG9w0BAQsFADCBgjELMAkGA1UEBhMCREUx\n"
             "KzApBgNVBAoMIlQtU3lzdGVtcyBFbnRlcnByaXNlIFNlcnZpY2VzIEdtYkgxHzAd\n"
@@ -3113,8 +3003,7 @@ namespace detail
             "BSeOE6Fuwg==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# T-TeleSec GlobalRoot Class 3\n"
+    cert += "# T-TeleSec GlobalRoot Class 3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDwzCCAqugAwIBAgIBATANBgkqhkiG9w0BAQsFADCBgjELMAkGA1UEBhMCREUx\n"
             "KzApBgNVBAoMIlQtU3lzdGVtcyBFbnRlcnByaXNlIFNlcnZpY2VzIEdtYkgxHzAd\n"
@@ -3139,8 +3028,7 @@ namespace detail
             "TpPDpFQUWw==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# TUBITAK Kamu SM SSL Kok Sertifikasi - Surum 1\n"
+    cert += "# TUBITAK Kamu SM SSL Kok Sertifikasi - Surum 1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEYzCCA0ugAwIBAgIBATANBgkqhkiG9w0BAQsFADCB0jELMAkGA1UEBhMCVFIx\n"
             "GDAWBgNVBAcTD0dlYnplIC0gS29jYWVsaTFCMEAGA1UEChM5VHVya2l5ZSBCaWxp\n"
@@ -3168,8 +3056,7 @@ namespace detail
             "lo3Ptv0AnVoUmr8CRPXBwp8iXqIPoeM=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# TWCA Global Root CA\n"
+    cert += "# TWCA Global Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFQTCCAymgAwIBAgICDL4wDQYJKoZIhvcNAQELBQAwUTELMAkGA1UEBhMCVFcx\n"
             "EjAQBgNVBAoTCVRBSVdBTi1DQTEQMA4GA1UECxMHUm9vdCBDQTEcMBoGA1UEAxMT\n"
@@ -3202,8 +3089,7 @@ namespace detail
             "KwbQBM0=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# TWCA Root Certification Authority\n"
+    cert += "# TWCA Root Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDezCCAmOgAwIBAgIBATANBgkqhkiG9w0BAQUFADBfMQswCQYDVQQGEwJUVzES\n"
             "MBAGA1UECgwJVEFJV0FOLUNBMRAwDgYDVQQLDAdSb290IENBMSowKAYDVQQDDCFU\n"
@@ -3226,8 +3112,7 @@ namespace detail
             "YiesZSLX0zzG5Y6yU8xJzrww/nsOM5D77dIUkR8Hrw==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Taiwan GRCA\n"
+    cert += "# Taiwan GRCA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFcjCCA1qgAwIBAgIQH51ZWtcvwgZEpYAIaeNe9jANBgkqhkiG9w0BAQUFADA/\n"
             "MQswCQYDVQQGEwJUVzEwMC4GA1UECgwnR292ZXJubWVudCBSb290IENlcnRpZmlj\n"
@@ -3261,8 +3146,7 @@ namespace detail
             "pYYsfPQS\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# TeliaSonera Root CA v1\n"
+    cert += "# TeliaSonera Root CA v1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFODCCAyCgAwIBAgIRAJW+FqD3LkbxezmCcvqLzZYwDQYJKoZIhvcNAQEFBQAw\n"
             "NzEUMBIGA1UECgwLVGVsaWFTb25lcmExHzAdBgNVBAMMFlRlbGlhU29uZXJhIFJv\n"
@@ -3294,8 +3178,7 @@ namespace detail
             "SK236thZiNSQvxaz2emsWWFUyBy6ysHK4bkgTI86k4mloMy/0/Z1pHWWbVY=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# TrustCor ECA-1\n"
+    cert += "# TrustCor ECA-1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEIDCCAwigAwIBAgIJAISCLF8cYtBAMA0GCSqGSIb3DQEBCwUAMIGcMQswCQYD\n"
             "VQQGEwJQQTEPMA0GA1UECAwGUGFuYW1hMRQwEgYDVQQHDAtQYW5hbWEgQ2l0eTEk\n"
@@ -3322,8 +3205,7 @@ namespace detail
             "tJ/X5g==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# TrustCor RootCert CA-1\n"
+    cert += "# TrustCor RootCert CA-1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEMDCCAxigAwIBAgIJANqb7HHzA7AZMA0GCSqGSIb3DQEBCwUAMIGkMQswCQYD\n"
             "VQQGEwJQQTEPMA0GA1UECAwGUGFuYW1hMRQwEgYDVQQHDAtQYW5hbWEgQ2l0eTEk\n"
@@ -3350,8 +3232,7 @@ namespace detail
             "zl/HHk484IkzlQsPpTLWPFp5LBk=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# TrustCor RootCert CA-2\n"
+    cert += "# TrustCor RootCert CA-2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIGLzCCBBegAwIBAgIIJaHfyjPLWQIwDQYJKoZIhvcNAQELBQAwgaQxCzAJBgNV\n"
             "BAYTAlBBMQ8wDQYDVQQIDAZQYW5hbWExFDASBgNVBAcMC1BhbmFtYSBDaXR5MSQw\n"
@@ -3389,8 +3270,7 @@ namespace detail
             "1uwJ\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Trustis FPS Root CA\n"
+    cert += "# Trustis FPS Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDZzCCAk+gAwIBAgIQGx+ttiD5JNM2a/fH8YygWTANBgkqhkiG9w0BAQUFADBF\n"
             "MQswCQYDVQQGEwJHQjEYMBYGA1UEChMPVHJ1c3RpcyBMaW1pdGVkMRwwGgYDVQQL\n"
@@ -3413,8 +3293,7 @@ namespace detail
             "ZetX2fNXlrtIzYE=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# UCA Extended Validation Root\n"
+    cert += "# UCA Extended Validation Root\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFWjCCA0KgAwIBAgIQT9Irj/VkyDOeTzRYZiNwYDANBgkqhkiG9w0BAQsFADBH\n"
             "MQswCQYDVQQGEwJDTjERMA8GA1UECgwIVW5pVHJ1c3QxJTAjBgNVBAMMHFVDQSBF\n"
@@ -3447,8 +3326,7 @@ namespace detail
             "fjKaiJUINlK73nZfdklJrX+9ZSCyycErdhh2n1ax\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# UCA Global G2 Root\n"
+    cert += "# UCA Global G2 Root\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFRjCCAy6gAwIBAgIQXd+x2lqj7V2+WmUgZQOQ7zANBgkqhkiG9w0BAQsFADA9\n"
             "MQswCQYDVQQGEwJDTjERMA8GA1UECgwIVW5pVHJ1c3QxGzAZBgNVBAMMElVDQSBH\n"
@@ -3481,8 +3359,7 @@ namespace detail
             "UB+K+wb1whnw0A==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# USERTrust ECC Certification Authority\n"
+    cert += "# USERTrust ECC Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICjzCCAhWgAwIBAgIQXIuZxVqUxdJxVt7NiYDMJjAKBggqhkjOPQQDAzCBiDEL\n"
             "MAkGA1UEBhMCVVMxEzARBgNVBAgTCk5ldyBKZXJzZXkxFDASBgNVBAcTC0plcnNl\n"
@@ -3500,8 +3377,7 @@ namespace detail
             "RNZu9YO6bVi9JNlWSOrvxKJGgYhqOkbRqZtNyWHa0V1Xahg=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# USERTrust RSA Certification Authority\n"
+    cert += "# USERTrust RSA Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIF3jCCA8agAwIBAgIQAf1tMPyjylGoG7xkDjUDLTANBgkqhkiG9w0BAQwFADCB\n"
             "iDELMAkGA1UEBhMCVVMxEzARBgNVBAgTCk5ldyBKZXJzZXkxFDASBgNVBAcTC0pl\n"
@@ -3537,8 +3413,7 @@ namespace detail
             "jjxDah2nGN59PRbxYvnKkKj9\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# VeriSign Class 3 Public Primary Certification Authority - G4\n"
+    cert += "# VeriSign Class 3 Public Primary Certification Authority - G4\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDhDCCAwqgAwIBAgIQL4D+I4wOIg9IZxIokYesszAKBggqhkjOPQQDAzCByjEL\n"
             "MAkGA1UEBhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQLExZW\n"
@@ -3561,8 +3436,7 @@ namespace detail
             "FRJZap7v1VmyHVIsmXHNxynfGyphe3HR3vPA5Q06Sqotp9iGKt0uEA==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# VeriSign Class 3 Public Primary Certification Authority - G5\n"
+    cert += "# VeriSign Class 3 Public Primary Certification Authority - G5\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIE0zCCA7ugAwIBAgIQGNrRniZ96LtKIVjNzGs7SjANBgkqhkiG9w0BAQUFADCB\n"
             "yjELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQL\n"
@@ -3592,8 +3466,7 @@ namespace detail
             "hnacRHr2lVz2XTIIM6RUthg/aFzyQkqFOFSDX9HoLPKsEdao7WNq\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# VeriSign Universal Root Certification Authority\n"
+    cert += "# VeriSign Universal Root Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEuTCCA6GgAwIBAgIQQBrEZCGzEyEDDrvkEhrFHTANBgkqhkiG9w0BAQsFADCB\n"
             "vTELMAkGA1UEBhMCVVMxFzAVBgNVBAoTDlZlcmlTaWduLCBJbmMuMR8wHQYDVQQL\n"
@@ -3623,8 +3496,7 @@ namespace detail
             "7M2CYfE45k+XmCpajQ==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# Verisign Class 3 Public Primary Certification Authority - G3\n"
+    cert += "# Verisign Class 3 Public Primary Certification Authority - G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEGjCCAwICEQCbfgZJoz5iudXukEhxKe9XMA0GCSqGSIb3DQEBBQUAMIHKMQsw\n"
             "CQYDVQQGEwJVUzEXMBUGA1UEChMOVmVyaVNpZ24sIEluYy4xHzAdBgNVBAsTFlZl\n"
@@ -3650,8 +3522,7 @@ namespace detail
             "TxzhT5yvDwyd93gN2PQ1VoDat20Xj50egWTh/sVFuq1ruQp6Tk9LhO5L8X3dEQ==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# XRamp Global CA Root\n"
+    cert += "# XRamp Global CA Root\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEMDCCAxigAwIBAgIQUJRs7Bjq1ZxN1ZfvdY+grTANBgkqhkiG9w0BAQUFADCB\n"
             "gjELMAkGA1UEBhMCVVMxHjAcBgNVBAsTFXd3dy54cmFtcHNlY3VyaXR5LmNvbTEk\n"
@@ -3678,8 +3549,7 @@ namespace detail
             "O+7ETPTsJ3xCwnR8gooJybQDJbw=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# certSIGN ROOT CA\n"
+    cert += "# certSIGN ROOT CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDODCCAiCgAwIBAgIGIAYFFnACMA0GCSqGSIb3DQEBBQUAMDsxCzAJBgNVBAYT\n"
             "AlJPMREwDwYDVQQKEwhjZXJ0U0lHTjEZMBcGA1UECxMQY2VydFNJR04gUk9PVCBD\n"
@@ -3701,8 +3571,7 @@ namespace detail
             "9u6wWk5JRFRYX0KD\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# ePKI Root Certification Authority\n"
+    cert += "# ePKI Root Certification Authority\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIFsDCCA5igAwIBAgIQFci9ZUdcr7iXAF7kBtK8nTANBgkqhkiG9w0BAQUFADBe\n"
             "MQswCQYDVQQGEwJUVzEjMCEGA1UECgwaQ2h1bmdod2EgVGVsZWNvbSBDby4sIEx0\n"
@@ -3737,8 +3606,7 @@ namespace detail
             "hNQ+IIX3Sj0rnP0qCglN6oH4EZw=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# emSign ECC Root CA - C3\n"
+    cert += "# emSign ECC Root CA - C3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICKzCCAbGgAwIBAgIKe3G2gla4EnycqDAKBggqhkjOPQQDAzBaMQswCQYDVQQG\n"
             "EwJVUzETMBEGA1UECxMKZW1TaWduIFBLSTEUMBIGA1UEChMLZU11ZGhyYSBJbmMx\n"
@@ -3754,8 +3622,7 @@ namespace detail
             "0wD8ofzkpf9/rdcw0Md3f76BB1UwUCAU9Vc4CqgxUQ==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# emSign ECC Root CA - G3\n"
+    cert += "# emSign ECC Root CA - G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICTjCCAdOgAwIBAgIKPPYHqWhwDtqLhDAKBggqhkjOPQQDAzBrMQswCQYDVQQG\n"
             "EwJJTjETMBEGA1UECxMKZW1TaWduIFBLSTElMCMGA1UEChMcZU11ZGhyYSBUZWNo\n"
@@ -3772,8 +3639,7 @@ namespace detail
             "+JbNR6iC8hZVdyR+EhCVBCyj\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# emSign Root CA - C1\n"
+    cert += "# emSign Root CA - C1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDczCCAlugAwIBAgILAK7PALrEzzL4Q7IwDQYJKoZIhvcNAQELBQAwVjELMAkG\n"
             "A1UEBhMCVVMxEzARBgNVBAsTCmVtU2lnbiBQS0kxFDASBgNVBAoTC2VNdWRocmEg\n"
@@ -3796,8 +3662,7 @@ namespace detail
             "WXzhriKi4gp6D/piq1JM4fHfyr6DDUI=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# emSign Root CA - G1\n"
+    cert += "# emSign Root CA - G1\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIDlDCCAnygAwIBAgIKMfXkYgxsWO3W2DANBgkqhkiG9w0BAQsFADBnMQswCQYD\n"
             "VQQGEwJJTjETMBEGA1UECxMKZW1TaWduIFBLSTElMCMGA1UEChMcZU11ZGhyYSBU\n"
@@ -3821,8 +3686,7 @@ namespace detail
             "iN66zB+Afko=\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# thawte Primary Root CA\n"
+    cert += "# thawte Primary Root CA\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEIDCCAwigAwIBAgIQNE7VVyDV7exJ9C/ON9srbTANBgkqhkiG9w0BAQUFADCB\n"
             "qTELMAkGA1UEBhMCVVMxFTATBgNVBAoTDHRoYXd0ZSwgSW5jLjEoMCYGA1UECxMf\n"
@@ -3849,8 +3713,7 @@ namespace detail
             "jVaMaA==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# thawte Primary Root CA - G2\n"
+    cert += "# thawte Primary Root CA - G2\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIICiDCCAg2gAwIBAgIQNfwmXNmET8k9Jj1Xm67XVjAKBggqhkjOPQQDAzCBhDEL\n"
             "MAkGA1UEBhMCVVMxFTATBgNVBAoTDHRoYXd0ZSwgSW5jLjE4MDYGA1UECxMvKGMp\n"
@@ -3868,8 +3731,7 @@ namespace detail
             "XZ3Krr0TKUQNJ1uo52icEvdYPy5yAlejj6EULg==\n"
             "-----END CERTIFICATE-----\n"
             "\n";
-        cert +=
-            "# thawte Primary Root CA - G3\n"
+    cert += "# thawte Primary Root CA - G3\n"
             "-----BEGIN CERTIFICATE-----\n"
             "MIIEKjCCAxKgAwIBAgIQYAGXt0an6rS0mtZLL/eQ+zANBgkqhkiG9w0BAQsFADCB\n"
             "rjELMAkGA1UEBhMCVVMxFTATBgNVBAoTDHRoYXd0ZSwgSW5jLjEoMCYGA1UECxMf\n"
@@ -3896,25 +3758,16 @@ namespace detail
             "MdRAGmI0Nj81Aa6sY6A=\n"
             "-----END CERTIFICATE-----";
 
-        ctx.add_certificate_authority(
-            boost::asio::buffer(cert.data(), cert.size()), ec);
-        if (ec)
-            return;
-    }
-
-} // detail
-
-// Load the root certificates into an ssl::context
-
-void load_root_certificates(boost::asio::ssl::context &ctx, boost::system::error_code &ec)
-{
-    detail::load_root_certificates(ctx, ec);
+    ctx.add_certificate_authority(boost::asio::buffer(cert.data(), cert.size()), ec);
+    if (ec)
+        return;
 }
 
-void load_root_certificates(boost::asio::ssl::context &ctx)
+inline void load_root_certificates(boost::asio::ssl::context &ctx)
 {
     boost::system::error_code ec;
-    detail::load_root_certificates(ctx, ec);
+    load_root_certificates(ctx, ec);
     if (ec)
         throw boost::system::system_error{ec};
 }
+} // namespace ipsuip

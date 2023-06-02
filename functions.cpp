@@ -1,12 +1,10 @@
-
 #include "functions.h"
-#include "http_client_sync_ssl.cpp"
+#include "sync-ssl/http_client_sync_ssl.cpp"
 
-namespace ipsuip
-{
+//namespace ipsuip
+//{
 
-const std::map<std::string, std::string>
-map_code(const std::vector<std::string> &_code)
+const std::map<std::string, std::string> ipsuip::map_code(const std::vector<std::string> &_code)
 {
     std::map<std::string, std::string> _map;
 
@@ -17,13 +15,13 @@ map_code(const std::vector<std::string> &_code)
     return _map;
 }
 
-void print_map(const std::map<std::string, std::string> &m)
+void ipsuip::print_map(const std::map<std::string, std::string> &m)
 {
     for (const auto &[key, value] : m)
         std::cout << value << " --> " << key << "\n";
 }
 
-auto parsing_site(const std::string &code, const TYPEPARSING &TYPE)
+auto ipsuip::parsing_site(const std::string &code, const TYPEPARSING &TYPE)
 {
     std::string type;
     if (TYPE == TYPEPARSING::CONTINENT)
@@ -39,8 +37,7 @@ auto parsing_site(const std::string &code, const TYPEPARSING &TYPE)
     return std::stringstream(get("suip.biz", type));
 }
 
-void write(std::filesystem::path &path, const std::string &code,
-           const std::string &data)
+void ipsuip::write(std::filesystem::path &path, const std::string &code, const std::string &data)
 {
     std::ofstream ofs;
     ofs.open(path.c_str() + code + ".txt");
@@ -51,8 +48,10 @@ void write(std::filesystem::path &path, const std::string &code,
     ofs << data;
 }
 
-void run_init(const std::string &code, std::string &spath,
-              std::map<std::string, std::string> &_map, const TYPEPARSING &TYPE)
+void ipsuip::run_init(const std::string &code,
+                      std::string &spath,
+                      std::map<std::string, std::string> &_map,
+                      const TYPEPARSING &TYPE)
 {
 
     if (spath.back() != '/')
@@ -81,13 +80,13 @@ void run_init(const std::string &code, std::string &spath,
 // std::stringstream ss3(get("suip.biz",
 // "/?act=all-country-ip&province=Lovech&all-download"));
 
-bool isNumber(const std::string &str)
+bool ipsuip::isNumber(const std::string &str)
 {
     return !str.empty() &&
            (str.find_first_not_of("0123456789") == std::string::npos);
 }
 
-std::vector<std::string> split(const std::string &str, char delim)
+std::vector<std::string> ipsuip::split(const std::string &str, char delim)
 {
     auto i = 0;
     std::vector<std::string> list;
@@ -106,7 +105,7 @@ std::vector<std::string> split(const std::string &str, char delim)
     return list;
 }
 
-bool validateIP(const std::string &ip)
+bool ipsuip::validateIP(const std::string &ip)
 {
     // split the string into tokens
     std::vector<std::string> list = split(ip, '.');
@@ -132,7 +131,7 @@ bool validateIP(const std::string &ip)
 }
 
 // 1.1.1.1-1.1.1.2
-bool clear_string(std::string &str)
+bool ipsuip::clear_string(std::string &str)
 {
 
     for (size_t i{str.find_first_not_of("0123456789.-")};
@@ -148,10 +147,10 @@ bool clear_string(std::string &str)
     return false;
 }
 
-const std::pair<std::vector<std::string>, std::vector<std::string>>
-clean_page_to_ip4_range(std::stringstream &html_page,
-                        const std::string &file_to_save,
-                        const VARIANT_VECTOR &variant_vector)
+const std::pair<std::vector<std::string>, std::vector<std::string>> ipsuip::clean_page_to_ip4_range(
+    std::stringstream &html_page,
+    const std::string &file_to_save,
+    const VARIANT_VECTOR &variant_vector)
 {
 
     std::vector<std::string> v;
@@ -255,8 +254,7 @@ clean_page_to_ip4_range(std::stringstream &html_page,
         std::make_pair(v_range, v_cidr));
 }
 
-const std::vector<std::string> range_boundaries_to_cidr(long int ip_start,
-                                                        long int ip_end)
+const std::vector<std::string> ipsuip::range_boundaries_to_cidr(long int ip_start, long int ip_end)
 {
     uint8_t bits = 1;
     long int mask = 1;
@@ -295,7 +293,7 @@ const std::vector<std::string> range_boundaries_to_cidr(long int ip_start,
     return cidrs;
 }
 
-bool read_from_file(std::ifstream &file, const std::string &str)
+bool ipsuip::read_from_file(std::ifstream &file, const std::string &str)
 {
     try
     {
@@ -310,8 +308,7 @@ bool read_from_file(std::ifstream &file, const std::string &str)
     return true;
 }
 
-bool save_to_file(const std::vector<std::string> &v_ip,
-                  const std::string &file_name)
+bool ipsuip::save_to_file(const std::vector<std::string> &v_ip, const std::string &file_name)
 {
     std::ofstream file;
     file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
@@ -343,4 +340,4 @@ bool save_to_file(const std::vector<std::string> &v_ip,
     return true;
 }
 
-} // namespace ipsuip
+//} // namespace ipsuip

@@ -1,8 +1,11 @@
-project(http)
+project(http LANGUAGES CXX)
 
-set(SOURCES http_client_sync_ssl.cpp)
-include_directories("../cert/")
+# add_subdirectory("../cert") include_directories("../cert") message("Include
+# diretory: ${INCLUDE_DIRECTORIES}") include("../cert")
 
-add_library(httplib ${SOURCES})
+set(SOURCES http_client_sync_ssl.cpp root_certificates.h)
 
-target_include_directories(httplib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(httplib STATIC ${SOURCES})
+
+# target_include_directories(httplib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# target_include_directories(certlib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
