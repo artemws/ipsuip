@@ -1,15 +1,10 @@
 /** Made by I'Pancake **/
 
 #include "countries.h"
+//#include "enum_variants.h"
 #include "functions.h"
 #include "timer.h"
-// #include <filesystem>
 #include <fstream>
-// #include <iostream>
-// #include <map>
-// #include <set>
-// #include <string>
-// #include <vector>
 
 int main(int argc, char **argv)
 {
@@ -17,8 +12,6 @@ int main(int argc, char **argv)
     try
     {
         std::vector<std::string> cmd(argv, argv + argc);
-
-        std::map<std::string, std::string> m;
 
         const std::string help{"--help"}, output{"--output"}, output_sh{"-o"},
             help_sh{"-h"}, mainland{"--mainland"}, mainland_sh{"-m"},
@@ -54,14 +47,10 @@ int main(int argc, char **argv)
             {
                 if (cmd[1] == mainland || cmd[1] == mainland_sh)
                 {
-                    m = ipsuip::map_code(ipsuip::mainland_code_data);
+                    ipsuip::print_map(ipsuip::map_code(ipsuip::mainland_code_data));
+                } else if (cmd[1] == country || cmd[1] == country_sh) {
+                    ipsuip::print_map(ipsuip::map_code(ipsuip::country_code_data));
                 }
-                else if (cmd[1] == country || cmd[1] == country_sh)
-                {
-                    m = ipsuip::map_code(ipsuip::country_code_data);
-                }
-
-                ipsuip::print_map(m);
 
                 return 0;
             }
@@ -76,7 +65,7 @@ int main(int argc, char **argv)
             }
             else
             {
-                throw std::runtime_error("argument not correct!");
+                throw std::runtime_error("Argument not correct: " + cmd[1]);
             }
         }
 
@@ -91,16 +80,12 @@ int main(int argc, char **argv)
 
             if (cmd[2] == mainland_sh || cmd[2] == mainland)
             {
-                m = ipsuip::map_code(ipsuip::mainland_code_data);
-                for (const auto &code : ipsuip::codes_mainlands)
-                {
-                    std::string spath{cmd[4]};
-                    if (spath.back() != '/')
-                        spath.push_back('/');
-
-                    spath.append(m[code] + "/");
-
-                    ipsuip::run_init(code, spath, m,
+                for (const auto &code : ipsuip::codes_mainlands) {
+                    ipsuip::run_init(code,
+                                     ipsuip::get_path(cmd[4],
+                                                      code,
+                                                      ipsuip::map_code(ipsuip::mainland_code_data)),
+                                     ipsuip::map_code(ipsuip::mainland_code_data),
                                      ipsuip::TYPEPARSING::CONTINENT);
                 }
             }
@@ -108,16 +93,12 @@ int main(int argc, char **argv)
 
                 if (cmd[2] == country_sh || cmd[2] == country)
             {
-                m = ipsuip::map_code(ipsuip::country_code_data);
-                for (const auto &code : ipsuip::codes_countries)
-                {
-                    std::string spath{cmd[4]};
-                    if (spath.back() != '/')
-                        spath.push_back('/');
-
-                    spath.append(m[code] + "/");
-
-                    ipsuip::run_init(code, spath, m,
+                for (const auto &code : ipsuip::codes_countries) {
+                    ipsuip::run_init(code,
+                                     ipsuip::get_path(cmd[4],
+                                                      code,
+                                                      ipsuip::map_code(ipsuip::country_code_data)),
+                                     ipsuip::map_code(ipsuip::country_code_data),
                                      ipsuip::TYPEPARSING::COUNTRY);
                 }
             }
@@ -133,14 +114,16 @@ int main(int argc, char **argv)
 
             if ((cmd[1] == mainland && ipsuip::codes_mainlands.contains(cmd[2]))
                 || (cmd[1] == mainland_sh && ipsuip::codes_mainlands.contains(cmd[2]))) {
-                m = ipsuip::map_code(ipsuip::mainland_code_data);
-
-                run_init(cmd[2], cmd[4], m, ipsuip::TYPEPARSING::CONTINENT);
+                ipsuip::run_init(cmd[2],
+                                 cmd[4],
+                                 ipsuip::map_code(ipsuip::mainland_code_data),
+                                 ipsuip::TYPEPARSING::CONTINENT);
             } else if ((cmd[1] == country && ipsuip::codes_countries.contains(cmd[2]))
                        || (cmd[1] == country_sh && ipsuip::codes_countries.contains(cmd[2]))) {
-                m = ipsuip::map_code(ipsuip::country_code_data);
-
-                run_init(cmd[2], cmd[4], m, ipsuip::TYPEPARSING::COUNTRY);
+                ipsuip::run_init(cmd[2],
+                                 cmd[4],
+                                 ipsuip::map_code(ipsuip::country_code_data),
+                                 ipsuip::TYPEPARSING::COUNTRY);
             } else {
                 throw std::runtime_error(cmd[2] +
                                          " this is the wrong argument!");

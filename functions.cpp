@@ -1,11 +1,7 @@
 #include "functions.h"
 #include "sync-ssl/http_client_sync_ssl.cpp"
 
-// namespace ipsuip
-//{
-
-const std::map<std::string, std::string>
-ipsuip::map_code(const std::vector<std::string> &_code)
+std::map<std::string, std::string> ipsuip::map_code(const std::vector<std::string> &_code)
 {
     std::map<std::string, std::string> _map;
 
@@ -38,73 +34,28 @@ auto ipsuip::parsing_site(const std::string &code, const TYPEPARSING &TYPE)
     return std::stringstream(get("suip.biz", type));
 }
 
-void ipsuip::write(std::filesystem::path &path, const std::string &code,
-                   const std::string &data)
-{
-    std::ofstream ofs;
-    ofs.open(path.c_str() + code + ".txt");
-    if (!ofs)
-        throw std::runtime_error("Error create file " +
-                                 std::string(path.c_str()));
-
-    ofs << data;
-}
-
-void ipsuip::run_init(const std::string &code, std::string &spath,
-                      std::map<std::string, std::string> &_map,
+void ipsuip::run_init(const std::string &code,
+                      const std::string &path,
+                      std::map<std::string, std::string> _map,
                       const TYPEPARSING &TYPE)
 {
+    std::string spath{path};
 
     if (spath.back() != '/')
         spath.push_back('/');
 
-    std::filesystem::path path{spath};
+    std::filesystem::path path_{spath};
 
-    if (!std::filesystem::exists(path))
-        std::filesystem::create_directories(path);
+    if (!std::filesystem::exists(path_))
+        std::filesystem::create_directories(path_);
 
     std::stringstream SITE = parsing_site(code, TYPE);
     std::cout << "### Start for " << _map[code] << "\n";
-    std::cout << "Full path: " + std::string(path.c_str()) + _map[code] << "\n";
+    std::cout << "Full path: " + std::string(path_) + _map[code] << "\n";
     // std::cout << SITE.str() << std::endl;
-    clean_page_to_ip4_list(SITE, path.c_str() + _map[code],
-                            VARIANT_VECTOR::ALL);
+    clean_page_to_ip4_list(SITE, path_.string() + _map[code], VARIANT_VECTOR::ALL);
 }
 
-// IP address lists of Armenia страна скачивание сразу
-
-// All IP ranges of Oceania континент страничка html
-// std::stringstream ss2(get("suip.biz",
-// "/?act=all-country-ip&continent=OC&all"));
-
-// IP addresses lists. All Cities of Lovech провинции скачивание сразу
-// std::stringstream ss3(get("suip.biz",
-// "/?act=all-country-ip&province=Lovech&all-download"));
-
-// bool ipsuip::isNumber(const std::string &str)
-//{
-//     return !str.empty() &&
-//            (str.find_first_not_of("0123456789") == std::string::npos);
-// }
-
-// std::vector<std::string> ipsuip::split(const std::string &str, char delim)
-//{
-//     auto i = 0;
-//     std::vector<std::string> list;
-
-//    auto pos = str.find(delim);
-
-//    while (pos != std::string::npos)
-//    {
-//        list.push_back(str.substr(i, pos - i));
-//        i = ++pos;
-//        pos = str.find(delim, pos);
-//    }
-
-//    list.push_back(str.substr(i, str.length()));
-
-//    return list;
-//}
 
 bool ipsuip::validateIP(const std::string &ip)
 {
@@ -116,33 +67,7 @@ bool ipsuip::validateIP(const std::string &ip)
     return true;
 }
 
-// bool ipsuip::validateIP(const std::string &ip)
-//{
-//     // split the string into tokens
-//     std::vector<std::string> list = split(ip, '.');
-
-//    // if the token size is not equal to four
-//    if (list.size() != 4)
-//    {
-//        return false;
-//    }
-
-//    // validate each token
-//    for (const std::string &str : list)
-//    {
-//        // verify that the string is a number or not, and the numbers
-//        // are in the valid range
-//        if (!isNumber(str) || stoi(str) > 255 || stoi(str) < 0)
-//        {
-//            return false;
-//        }
-//    }
-
-//    return true;
-//}
-
-// 1.1.1.1-1.1.1.2
-bool ipsuip::parsing_string(std::string &str)
+bool ipsuip::get_parsing_string(std::string &str)
 {
 
     for (size_t i{str.find_first_not_of("0123456789.-")};
@@ -179,8 +104,7 @@ ipsuip::clean_page_to_ip4_list(std::stringstream &html_page,
     for (std::string iprange; getline(html_page, iprange);)
 
     {
-        if (!parsing_string(iprange))
-        {
+        if (!get_parsing_string(iprange)) {
             continue;
         }
 
@@ -329,7 +253,7 @@ bool ipsuip::save_to_file(const std::vector<std::string> &v_ip,
     {
         file.open(file_name);
         if (!file)
-            throw std::runtime_error("File creation error!");
+            throw std::runtime_error("File creation error: " + file_name);
 
         if (v_ip.empty())
             throw std::runtime_error("vector empty");
@@ -353,4 +277,13 @@ bool ipsuip::save_to_file(const std::vector<std::string> &v_ip,
     return true;
 }
 
-//} // namespace ipsuip
+const std::string ipsuip::get_path(std::string path,
+                                   const std::string &code,
+                                   std::map<std::string, std::string> m)
+{
+    if (path.back() != '/')
+        path.push_back('/');
+
+    path.append(m[code] + "/");
+    return path;
+}

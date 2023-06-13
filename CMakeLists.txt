@@ -4,9 +4,9 @@ project(ipsuip LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS
-    "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -Wpedantic -Wno-unused-parameter"
-)
+#set(CMAKE_CXX_FLAGS
+#    "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -Wpedantic -Wno-unused-parameter"
+#)
 
 message("cmake_cxx_standard: ${CMAKE_CXX_STANDARD}")
 
@@ -14,7 +14,7 @@ set(SOURCES main.cpp functions.cpp timer.cpp)
 
 message("Source files: ${SOURCES}")
 
-set(HEADERS functions.h countries.h timer.h)
+set(HEADERS functions.h countries.h timer.h enum_variants.h)
 
 message("Headers: ${HEADERS}")
 
