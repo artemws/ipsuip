@@ -10,11 +10,11 @@ set(CMAKE_CXX_FLAGS
 
 message("cmake_cxx_standard: ${CMAKE_CXX_STANDARD}")
 
-set(SOURCES main.cpp functions.cpp)
+set(SOURCES main.cpp functions.cpp timer.cpp)
 
 message("Source files: ${SOURCES}")
 
-set(HEADERS functions.h countries.h)
+set(HEADERS functions.h countries.h timer.h)
 
 message("Headers: ${HEADERS}")
 

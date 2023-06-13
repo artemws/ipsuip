@@ -2,6 +2,7 @@
 
 #include "countries.h"
 #include "functions.h"
+#include "timer.h"
 // #include <filesystem>
 #include <fstream>
 // #include <iostream>
@@ -82,13 +83,11 @@ int main(int argc, char **argv)
         //////////////////////////////////////////////////////////
         /// DOWNLOAD ALL MAINLANDS COUNTRIES
         /// //////////////////////////////////////////////////////
-        else if ((cmd.size() == 5 && cmd[1] == all &&
-                  (cmd[2] == country_sh || cmd[2] == mainland_sh) &&
-                  (cmd[3] == output_sh || cmd[3] == output)) ||
-                 (cmd.size() == 5 && cmd[1] == all &&
-                  (cmd[2] == country || cmd[2] == mainland) &&
-                  (cmd[3] == output_sh || cmd[3] == output)))
-        {
+        else if ((cmd.size() == 5 && cmd[1] == all && (cmd[2] == country_sh || cmd[2] == mainland_sh)
+                  && (cmd[3] == output_sh || cmd[3] == output))
+                 || (cmd.size() == 5 && cmd[1] == all && (cmd[2] == country || cmd[2] == mainland)
+                     && (cmd[3] == output_sh || cmd[3] == output))) {
+            Timer timer;
 
             if (cmd[2] == mainland_sh || cmd[2] == mainland)
             {
@@ -129,50 +128,31 @@ int main(int argc, char **argv)
         //////////////////////////////////////////////////////////////
         ///   MAINLAND COUNTRY
         /// //////////////////////////////////////////////////////////
-        else if ((cmd.size() == 5 && cmd[3] == output_sh) ||
-                 (cmd.size() == 5 && cmd[3] == output))
-        {
-            auto start = std::chrono::steady_clock::now();
+        else if ((cmd.size() == 5 && cmd[3] == output_sh) || (cmd.size() == 5 && cmd[3] == output)) {
+            Timer timer;
 
-            if ((cmd[1] == mainland &&
-                 ipsuip::codes_mainlands.contains(cmd[2])) ||
-                (cmd[1] == mainland_sh &&
-                 ipsuip::codes_mainlands.contains(cmd[2])))
-            {
+            if ((cmd[1] == mainland && ipsuip::codes_mainlands.contains(cmd[2]))
+                || (cmd[1] == mainland_sh && ipsuip::codes_mainlands.contains(cmd[2]))) {
                 m = ipsuip::map_code(ipsuip::mainland_code_data);
 
                 run_init(cmd[2], cmd[4], m, ipsuip::TYPEPARSING::CONTINENT);
-            }
-            else if ((cmd[1] == country &&
-                      ipsuip::codes_countries.contains(cmd[2])) ||
-                     (cmd[1] == country_sh &&
-                      ipsuip::codes_countries.contains(cmd[2])))
-            {
+            } else if ((cmd[1] == country && ipsuip::codes_countries.contains(cmd[2]))
+                       || (cmd[1] == country_sh && ipsuip::codes_countries.contains(cmd[2]))) {
                 m = ipsuip::map_code(ipsuip::country_code_data);
 
                 run_init(cmd[2], cmd[4], m, ipsuip::TYPEPARSING::COUNTRY);
-            }
-            else
-            {
+            } else {
                 throw std::runtime_error(cmd[2] +
                                          " this is the wrong argument!");
             }
 
-            auto end = std::chrono::steady_clock::now();
-            std::cout << "All done" << std::endl;
-            std::cout << "Elapsed time in seconds: "
-                      << std::chrono::duration_cast<std::chrono::seconds>(end -
-                                                                          start)
-                             .count()
-                      << " sec" << std::endl;
             return 0;
         }
 
         ////////////////////////////////////////////////////////////////////
         ///
         /// ////////////////////////////////////////////////////////////////
-        else
-        {
+        else {
             throw std::runtime_error("Argument not valid!");
         }
 
