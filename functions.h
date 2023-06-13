@@ -57,7 +57,7 @@ enum class VARIANT_VECTOR
 
 //@@ clean site page and return pair vector CIDR and RANGE ip addreses
 const std::pair<std::vector<std::string>, std::vector<std::string>>
-clean_page_to_ip4_range(std::stringstream &html_page,
+clean_page_to_ip4_list(std::stringstream &html_page,
                         const std::string &file_to_save,
                         const VARIANT_VECTOR &variant_vector);
 
@@ -75,7 +75,7 @@ bool save_to_file(const std::vector<std::string> &v_ip,
 
 void write(std::filesystem::path &path, const std::string &code, const std::string &data);
 
-bool clear_string(std::string &str);
+bool parsing_string(std::string &str);
 
 bool validateIP(const std::string &ip);
 

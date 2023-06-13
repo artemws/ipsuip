@@ -1,10 +1,11 @@
 #include "functions.h"
 #include "sync-ssl/http_client_sync_ssl.cpp"
 
-//namespace ipsuip
+// namespace ipsuip
 //{
 
-const std::map<std::string, std::string> ipsuip::map_code(const std::vector<std::string> &_code)
+const std::map<std::string, std::string>
+ipsuip::map_code(const std::vector<std::string> &_code)
 {
     std::map<std::string, std::string> _map;
 
@@ -37,7 +38,8 @@ auto ipsuip::parsing_site(const std::string &code, const TYPEPARSING &TYPE)
     return std::stringstream(get("suip.biz", type));
 }
 
-void ipsuip::write(std::filesystem::path &path, const std::string &code, const std::string &data)
+void ipsuip::write(std::filesystem::path &path, const std::string &code,
+                   const std::string &data)
 {
     std::ofstream ofs;
     ofs.open(path.c_str() + code + ".txt");
@@ -48,8 +50,7 @@ void ipsuip::write(std::filesystem::path &path, const std::string &code, const s
     ofs << data;
 }
 
-void ipsuip::run_init(const std::string &code,
-                      std::string &spath,
+void ipsuip::run_init(const std::string &code, std::string &spath,
                       std::map<std::string, std::string> &_map,
                       const TYPEPARSING &TYPE)
 {
@@ -66,7 +67,7 @@ void ipsuip::run_init(const std::string &code,
     std::cout << "### Start for " << _map[code] << "\n";
     std::cout << "Full path: " + std::string(path.c_str()) + _map[code] << "\n";
     // std::cout << SITE.str() << std::endl;
-    clean_page_to_ip4_range(SITE, path.c_str() + _map[code],
+    clean_page_to_ip4_list(SITE, path.c_str() + _map[code],
                             VARIANT_VECTOR::ALL);
 }
 
@@ -80,58 +81,68 @@ void ipsuip::run_init(const std::string &code,
 // std::stringstream ss3(get("suip.biz",
 // "/?act=all-country-ip&province=Lovech&all-download"));
 
-bool ipsuip::isNumber(const std::string &str)
-{
-    return !str.empty() &&
-           (str.find_first_not_of("0123456789") == std::string::npos);
-}
+// bool ipsuip::isNumber(const std::string &str)
+//{
+//     return !str.empty() &&
+//            (str.find_first_not_of("0123456789") == std::string::npos);
+// }
 
-std::vector<std::string> ipsuip::split(const std::string &str, char delim)
-{
-    auto i = 0;
-    std::vector<std::string> list;
+// std::vector<std::string> ipsuip::split(const std::string &str, char delim)
+//{
+//     auto i = 0;
+//     std::vector<std::string> list;
 
-    auto pos = str.find(delim);
+//    auto pos = str.find(delim);
 
-    while (pos != std::string::npos)
-    {
-        list.push_back(str.substr(i, pos - i));
-        i = ++pos;
-        pos = str.find(delim, pos);
-    }
+//    while (pos != std::string::npos)
+//    {
+//        list.push_back(str.substr(i, pos - i));
+//        i = ++pos;
+//        pos = str.find(delim, pos);
+//    }
 
-    list.push_back(str.substr(i, str.length()));
+//    list.push_back(str.substr(i, str.length()));
 
-    return list;
-}
+//    return list;
+//}
 
 bool ipsuip::validateIP(const std::string &ip)
 {
-    // split the string into tokens
-    std::vector<std::string> list = split(ip, '.');
+    boost::system::error_code ec;
+    boost::asio::ip::make_address_v4(ip, ec);
 
-    // if the token size is not equal to four
-    if (list.size() != 4)
-    {
+    if (ec)
         return false;
-    }
-
-    // validate each token
-    for (const std::string &str : list)
-    {
-        // verify that the string is a number or not, and the numbers
-        // are in the valid range
-        if (!isNumber(str) || stoi(str) > 255 || stoi(str) < 0)
-        {
-            return false;
-        }
-    }
-
     return true;
 }
 
+// bool ipsuip::validateIP(const std::string &ip)
+//{
+//     // split the string into tokens
+//     std::vector<std::string> list = split(ip, '.');
+
+//    // if the token size is not equal to four
+//    if (list.size() != 4)
+//    {
+//        return false;
+//    }
+
+//    // validate each token
+//    for (const std::string &str : list)
+//    {
+//        // verify that the string is a number or not, and the numbers
+//        // are in the valid range
+//        if (!isNumber(str) || stoi(str) > 255 || stoi(str) < 0)
+//        {
+//            return false;
+//        }
+//    }
+
+//    return true;
+//}
+
 // 1.1.1.1-1.1.1.2
-bool ipsuip::clear_string(std::string &str)
+bool ipsuip::parsing_string(std::string &str)
 {
 
     for (size_t i{str.find_first_not_of("0123456789.-")};
@@ -147,10 +158,10 @@ bool ipsuip::clear_string(std::string &str)
     return false;
 }
 
-const std::pair<std::vector<std::string>, std::vector<std::string>> ipsuip::clean_page_to_ip4_range(
-    std::stringstream &html_page,
-    const std::string &file_to_save,
-    const VARIANT_VECTOR &variant_vector)
+const std::pair<std::vector<std::string>, std::vector<std::string>>
+ipsuip::clean_page_to_ip4_list(std::stringstream &html_page,
+                                const std::string &file_to_save,
+                                const VARIANT_VECTOR &variant_vector)
 {
 
     std::vector<std::string> v;
@@ -168,7 +179,7 @@ const std::pair<std::vector<std::string>, std::vector<std::string>> ipsuip::clea
     for (std::string iprange; getline(html_page, iprange);)
 
     {
-        if (!clear_string(iprange))
+        if (!parsing_string(iprange))
         {
             continue;
         }
@@ -254,7 +265,8 @@ const std::pair<std::vector<std::string>, std::vector<std::string>> ipsuip::clea
         std::make_pair(v_range, v_cidr));
 }
 
-const std::vector<std::string> ipsuip::range_boundaries_to_cidr(long int ip_start, long int ip_end)
+const std::vector<std::string>
+ipsuip::range_boundaries_to_cidr(long int ip_start, long int ip_end)
 {
     uint8_t bits = 1;
     long int mask = 1;
@@ -308,7 +320,8 @@ bool ipsuip::read_from_file(std::ifstream &file, const std::string &str)
     return true;
 }
 
-bool ipsuip::save_to_file(const std::vector<std::string> &v_ip, const std::string &file_name)
+bool ipsuip::save_to_file(const std::vector<std::string> &v_ip,
+                          const std::string &file_name)
 {
     std::ofstream file;
     file.exceptions(std::ifstream::failbit | std::ifstream::badbit);
