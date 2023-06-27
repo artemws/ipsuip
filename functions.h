@@ -14,59 +14,61 @@
 
 namespace ipsuip {
 
-const std::string get_path(std::string path,
-                           const std::string &code,
+const std::string get_path(std::string path, const std::string &code,
                            std::map<std::string, std::string> m);
 
-struct HumanReadable
-{
-    std::uintmax_t size{};
+struct HumanReadable {
+  std::uintmax_t size{};
+
+  HumanReadable(std::uintmax_t size) : size{size} {}
 
 private:
-    friend std::ostream &operator<<(std::ostream &os, HumanReadable hr)
-    {
-        int i{};
-        double mantissa = hr.size;
-        for (; mantissa >= 1024.; mantissa /= 1024., ++i) {
-        }
-        mantissa = std::ceil(mantissa * 10.) / 10.;
-        os << mantissa << "BKMGTPE"[i];
-        return i == 0 ? os : os << "B (" << hr.size << ')';
+  friend std::ostream &operator<<(std::ostream &os, HumanReadable hr) {
+    int i{};
+    double mantissa = hr.size;
+    for (; mantissa >= 1024.; mantissa /= 1024., ++i) {
     }
+    mantissa = std::ceil(mantissa * 10.) / 10.;
+    os << mantissa << "BKMGTPE"[i];
+    return i == 0 ? os : os << "B (" << hr.size << ')';
+  }
 };
 
-std::map<std::string, std::string> map_code(const std::vector<std::string> &_code);
+std::map<std::string, std::string>
+map_code(const std::vector<std::string> &_code);
 
 void print_map(const std::map<std::string, std::string> &m);
 
 auto parsing_site(const std::string &code, const TYPEPARSING &TYPE);
 
-void run_init(const std::string &code,
-              const std::string &path,
-              std::map<std::string, std::string> _map,
-              const TYPEPARSING &TYPE);
+void run_init(const std::string &code, const std::string &path,
+              std::map<std::string, std::string> _map, const TYPEPARSING &TYPE);
 
-//@@ clean site page and return pair vector CIDR and RANGE ip addreses
-const std::pair<std::vector<std::string>, std::vector<std::string>>
-clean_page_to_ip4_list(std::stringstream &html_page,
-                        const std::string &file_to_save,
-                        const VARIANT_VECTOR &variant_vector);
+void to_range(const std::vector<std::string>::iterator &first,
+              const std::vector<std::string>::iterator &second,
+              std::vector<std::string> &result);
 
-const std::vector<std::string> range_boundaries_to_cidr(long ip_start,
-                                                        long ip_end);
+void to_cidr(const std::vector<std::string>::iterator &first,
+             const std::vector<std::string>::iterator &second,
+             std::vector<std::string> &result);
 
-bool read_from_file(std::ifstream &file, const std::string &str);
+const std::vector<std::string> range_boundaries_to_cidr(const long int &ip_start,
+                                                        const long int &ip_end);
 
-bool save_to_file(const std::vector<std::string> &v_ip, const std::string &file_name);
+// bool read_from_file(std::ifstream &file, const std::string &str);
 
-bool get_parsing_string(std::string &str);
+void save_to_file(const std::vector<std::string> &v_ip,
+                  const std::string &file_name);
+
+void get_parsing_data(const std::vector<std::string>::iterator &first,
+                      const std::vector<std::string>::iterator &second,
+                      std::vector<std::string> &result);
 
 bool validateIP(const std::string &ip);
 
-struct IP_a
-{
-    std::vector<std::string> RANGE;
-    std::vector<std::string> CIDR;
+struct IP_a {
+  std::vector<std::string> RANGE;
+  std::vector<std::string> CIDR;
 };
 
 } // namespace ipsuip

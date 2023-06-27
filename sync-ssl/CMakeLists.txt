@@ -1,9 +1,9 @@
-project(http LANGUAGES CXX)
+# project(http LANGUAGES CXX)
 
 # add_subdirectory("../cert") include_directories("../cert") message("Include
 # diretory: ${INCLUDE_DIRECTORIES}") include("../cert")
 
-set(SOURCES http_client_sync_ssl.cpp root_certificates.h)
+set(SOURCES http_client_sync_ssl.cpp root_certificates.h ../functions.h)
 
 add_library(httplib STATIC ${SOURCES})
 
