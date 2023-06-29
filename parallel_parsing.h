@@ -7,6 +7,8 @@
 #include <thread>
 #include <vector>
 
+namespace ipsuip {
+
 enum class VAR { PARSING_DATA_S, TO_CIDR_S, TO_RANGE_S };
 
 template<typename Iterator>
@@ -48,7 +50,7 @@ void parallel_work(Iterator first, Iterator last, std::vector<std::string> &init
 
     unsigned long const hardware_threads = std::thread::hardware_concurrency();
 
-    unsigned long const num_threads = std::min(hardware_threads != 0 ? hardware_threads : 2,
+    unsigned long const num_threads = std::min(hardware_threads != 0 ? hardware_threads : 4,
                                                max_threads);
 
     unsigned long const block_size = length / num_threads;
@@ -97,3 +99,4 @@ void parallel_work(Iterator first, Iterator last, std::vector<std::string> &init
 
     init = v;
 }
+} // namespace ipsuip

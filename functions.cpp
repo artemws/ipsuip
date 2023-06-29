@@ -1,6 +1,6 @@
 #include "functions.h"
+#include "http_client_sync_ssl.h"
 #include "parallel_parsing.h"
-#include "sync-ssl/http_client_sync_ssl.cpp"
 
 std::map<std::string, std::string>
 ipsuip::map_code(const std::vector<std::string> &_code) {

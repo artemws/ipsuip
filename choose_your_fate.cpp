@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-int choose_your_fate(int argc, char **argv)
+void choose_your_fate(int argc, char **argv)
 {
     std::vector<std::string> cmd(argv, argv + argc);
 
@@ -21,7 +21,7 @@ int choose_your_fate(int argc, char **argv)
     if (cmd.size() == 1 || cmd.size() > 5 || cmd.size() == 3) {
         std::cerr << "Usage: ipcountriesdownloader [OPTION]\n"
                   << "Try 'ipcountriesdownloader --help' for more information.\n";
-        return 0;
+        return;
     }
 
     if (cmd.size() == 2) {
@@ -30,7 +30,7 @@ int choose_your_fate(int argc, char **argv)
         /// ///////////////////////////////////////////////
         if (cmd[1] == help || cmd[1] == help_sh) {
             std::cout << ipsuip::help_out << std::endl;
-            return 0;
+            return;
         }
 
         ////////////////////////////////////////////////////
@@ -44,7 +44,7 @@ int choose_your_fate(int argc, char **argv)
                 ipsuip::print_map(ipsuip::map_code(ipsuip::country_code_data));
             }
 
-            return 0;
+            return;
         }
 
         ////////////////////////////////////////////////////
@@ -88,7 +88,7 @@ int choose_your_fate(int argc, char **argv)
             }
         }
 
-        return 0;
+        return;
     }
 
     //////////////////////////////////////////////////////////////
@@ -113,7 +113,7 @@ int choose_your_fate(int argc, char **argv)
             throw std::runtime_error(cmd[2] + " this is the wrong argument!");
         }
 
-        return 0;
+        return;
     }
 
     ////////////////////////////////////////////////////////////////////
@@ -123,5 +123,5 @@ int choose_your_fate(int argc, char **argv)
         throw std::runtime_error("Argument not valid!");
     }
 
-    return 0;
+    return;
 }

@@ -7,7 +7,7 @@
 int main(int argc, char **argv)
 {
     try {
-        return choose_your_fate(argc, argv);
+        choose_your_fate(argc, argv);
 
     } catch (std::exception &e) {
         std::cerr << e.what() << std::endl;
