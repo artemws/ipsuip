@@ -1,17 +1,8 @@
-message("cmake_cxx_standard: ${CMAKE_CXX_STANDARD}")
-
 set(SOURCES main.cpp)
-
-message("Source files: ${SOURCES}")
-
-# set(HEADERS)
-
-# message("Headers: ${HEADERS}")
 
 # set(Boost_USE_STATIC_LIBS ON) # only find static libs set(Boost_USE_DEBUG_LIBS
 # ON) # ignore debug libs and set(Boost_USE_RELEASE_LIBS OFF) # only find
 # release libs set(Boost_USE_MULTITHREADED ON) set(Boost_USE_STATIC_RUNTIME ON)
-
 # find_package( Boost COMPONENTS # thread REQUIRED)
 
 add_subdirectory(choose_your_fate)
