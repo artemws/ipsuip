@@ -1,6 +1,6 @@
 /** Made by I'm Pancake **/
 
-#include "choose_your_fate/choose_your_fate.h"
+#include "choose_your_fate.h"
 #include <exception>
 #include <iostream>
 
