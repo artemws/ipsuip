@@ -12,7 +12,7 @@ add_subdirectory(parallel_parsing)
 add_subdirectory(timer)
 
 add_executable(ipsuip ${SOURCES} ${HEADERS})
-target_link_libraries(ipsuip PRIVATE choose_your_fate)
+target_link_libraries(ipsuip PRIVATE choose_your_fate -lpthread -lm -static-libgcc -static-libstdc++)
 
 # target_link_libraries(ipsuip PRIVATE ${Boost_LIBRARIES} )
 message("Boost_libraries: ${Boost_LIBRARIES}")
