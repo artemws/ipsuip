@@ -1,4 +1,4 @@
-/** Made by I'Pancake **/
+/** Made by I'm Pancake **/
 
 //#include "choose_your_fate.h"
 #include <QApplication>

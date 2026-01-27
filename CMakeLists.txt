@@ -1,15 +1,18 @@
 cmake_minimum_required(VERSION 3.20)
+project(ipsuip)
 
+<<<<<<< HEAD
 project(
   ipsuip
   VERSION 0.1
   LANGUAGES CXX)
 
+=======
+>>>>>>> refs/remotes/origin/master
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -Wall -Wextra -Wpedantic
-# -Wno-unused-parameter")
 
+<<<<<<< HEAD
 
 
 # set(SOURCES)
@@ -85,3 +88,6 @@ install(
 
 message("Boost_libraries: ${Boost_LIBRARIES}")
 message("Openssl_libraries: ${OPENSSL_LIBRARIES}")
+=======
+add_subdirectory(src bin)
+>>>>>>> refs/remotes/origin/master
