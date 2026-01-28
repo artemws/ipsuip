@@ -9,7 +9,7 @@
 
 namespace ipsuip {
 
-enum class VAR { PARSING_DATA_S, TO_CIDR_S, TO_RANGE_S };
+// enum class VAR { PARSING_DATA_S, TO_CIDR_S, TO_RANGE_S };
 
 template<typename Iterator>
 struct parsing_data_s

@@ -1,7 +1,7 @@
-find_package(OpenSSL)
+find_package(OpenSSL REQUIRED)
 set(OPENSSL_USE_STATIC_LIBS ON)
 
-add_library(http_client_sync_ssl http_client_sync_ssl.cpp
+add_library(http_client_sync_ssl STATIC  http_client_sync_ssl.cpp
                                  http_client_sync_ssl.h root_certificates.h)
 
 target_link_libraries(http_client_sync_ssl PRIVATE functions)
