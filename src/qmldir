@@ -1,0 +1,4 @@
+module Ipsuip
+MainWindow 1.0 MainWindow.qml
+CountriesDialog 1.0 CountriesDialog.qml
+MainlandsDialog 1.0 MainlandsDialog.qml

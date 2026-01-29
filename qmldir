@@ -1,0 +1,4 @@
+module ipsuip
+Countries 1.0 src/gui/Countries.qml
+MainWindow 1.0 src/gui/MainWindow.qml
+Mainland 1.0 src/gui/Mainland.qml

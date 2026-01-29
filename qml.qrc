@@ -1,0 +1,7 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/">
+    <file>qml/MainWindow.qml</file>
+    <file>qml/CountriesDialog.qml</file>
+    <file>qml/MainlandsDialog.qml</file>
+</qresource>
+</RCC>

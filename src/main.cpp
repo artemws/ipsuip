@@ -1,17 +1,29 @@
 /** Made by I'm Pancake **/
 
-//#include "choose_your_fate.h"
-#include <QApplication>
-#include "gui/mainwindow.h"
-//#include <exception>
-//#include <iostream>
+#include <QGuiApplication>
+#include <QQmlApplicationEngine>
+#include <QQmlContext>
+#include "functions.h"
+#include "gui/MainWindowController.h"
 
 int main(int argc, char **argv)
 {
-    QApplication p(argc, argv);
+    QGuiApplication app(argc, argv);
 
-    MainWindow m;
-    m.show();
+    QQmlApplicationEngine engine;
+    
+    // Регистрируем C++ классы для использования в QML
+    MainWindowController controller;
+    engine.rootContext()->setContextProperty("mainController", &controller);
+    
+    // Загружаем основной QML файл
+    const QUrl url( "qrc:/Ipsuip/qml/MainWindow.qml");
+    QObject::connect(&engine, &QQmlApplicationEngine::objectCreated,
+                     &app, [url](QObject *obj, const QUrl &objUrl) {
+        if (!obj && url == objUrl)
+            QCoreApplication::exit(-1);
+    }, Qt::QueuedConnection);
+    engine.load(url);
 
-    return p.exec();
+    return app.exec();
 }

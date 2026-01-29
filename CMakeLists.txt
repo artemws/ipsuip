@@ -5,78 +5,45 @@ project(ipsuip VERSION 0.1 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-
-
-# set(SOURCES)
-
-# message("Source files: ${SOURCES}")
-
-# set(HEADERS)
-
-# message("Headers: ${HEADERS}")
 cmake_policy(SET CMP0167 NEW)
-
-# find_package(Boost
-#   # COMPONENTS thread
-#   REQUIRED)
-
-# set(Boost_USE_STATIC_LIBS ON) # only find static libs
-# set(Boost_USE_DEBUG_LIBS ON) # ignore debug libs and
-# set(Boost_USE_RELEASE_LIBS OFF) # only find release libs
-# set(Boost_USE_MULTITHREADED ON)
-# set(Boost_USE_STATIC_RUNTIME ON)
-
-# find_package(OpenSSL)
-# set(OPENSSL_USE_STATIC_LIBS ON)
-
-# find_package(Qt6 REQUIRED COMPONENTS Widgets)
-# message("cmake_cxx_standard: ${CMAKE_CXX_STANDARD}")
-# qt_standard_project_setup()
 
 add_subdirectory(src)
 
-# qt_wrap_ui(SOURCES mainwindow.ui)
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp ${CMAKE_CURRENT_SOURCE_DIR}/*.h)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
-# add_library(mainland STATIC) add_library(country STATIC)
+# Find required Qt packages
+# find_package(Qt6 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Widgets)
+# target_link_libraries(${PROJECT_NAME} PRIVATE Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2)
 
-# qt_add_executable( add_executable(
-# qt6_add_executable(
-#   ipsuip
-#   # MANUAL_FINALIZATION ${SOURCES} ${HEADERS}
-#   main.cpp
-#   # timer.cpp
-#   functions.h
-#   # timer.h
-#   mainwindow.h
-#   mainwindow.ui
-#   mainwindow.cpp
-#   # choose_your_fate.h
-#   mainland.h
-#   mainland.ui
-#   mainland.cpp
-#   countries.h
-#   countries.ui
-#   countries.cpp)
+# Collect source files
+# file(GLOB GUI_SOURCES ./*.cpp ./*.h)
 
-# target_link_libraries(ipsuip PRIVATE Qt6::Widgets ${Boost_LIBRARIES} ${OPENSSL_LIBRARIES})
+# Create the executable
+# add_executable(${PROJECT_NAME} ${GUI_SOURCES} main.cpp)
 
-# set_target_properties(
-#   ipsuip
-#   PROPERTIES MACOSX_BUNDLE_GUI_IDENTIFIER my.example.com
-#              MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-#              MACOSX_BUNDLE_SHORT_VERSION_STRING
-#              ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-#              MACOSX_BUNDLE TRUE
-#              WIN32_EXECUTABLE TRUE)
+# Link Qt libraries
+# qt_standard_project_setup()
 
-# install(
-#   TARGETS ipsuip
-#   BUNDLE DESTINATION .
-#   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+# Add QML module
+# qt_add_qml_module(${PROJECT_NAME}
+#     URI ipsuip
+#     VERSION 1.0
+#     QML_FILES
+#         qml/MainWindow.qml
+#         qml/Countries.qml
+#         qml/Mainland.qml
+#         qml/CheckBox.qml
+# )
 
-# if(QT_VERSION_MAJOR EQUAL 6) qt6_finalize_target(ipsuip) endif()
+# Include directories
+# target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-# message("Boost_libraries: ${Boost_LIBRARIES}")
-# message("Openssl_libraries: ${OPENSSL_LIBRARIES}")
-
+# Link libraries
+# target_link_libraries(${PROJECT_NAME} PRIVATE
+#     Qt6::Core
+#     Qt6::Gui
+#     Qt6::Qml
+#     Qt6::Quick
+#     Qt6::QuickControls2
+# )
