@@ -17,7 +17,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          # ubuntu-20.04 даёт glibc 2.31 — работает на Rocky Linux 8/9, CentOS 8+
+          - os: ubuntu-20.04
             artifact: ipsuip-linux
 
           - os: windows-latest
@@ -30,7 +31,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── Linux: статические библиотеки ─────────────────────────────────────
+      # ── Linux ──────────────────────────────────────────────────────────────
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -45,24 +46,19 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           brew install boost openssl@3 ninja
-          OPENSSL_PREFIX=$(brew --prefix openssl@3)
-          BOOST_PREFIX=$(brew --prefix boost)
-          echo "OPENSSL_ROOT_DIR=${OPENSSL_PREFIX}"      >> $GITHUB_ENV
-          echo "BOOST_ROOT=${BOOST_PREFIX}"              >> $GITHUB_ENV
-          # Помогаем CMake find_package(Boost) найти заголовки Homebrew
-          echo "CMAKE_PREFIX_PATH=${BOOST_PREFIX};${OPENSSL_PREFIX}" >> $GITHUB_ENV
+          echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
+          echo "BOOST_ROOT=$(brew --prefix boost)"          >> $GITHUB_ENV
 
-      # ── Windows: vcpkg ─────────────────────────────────────────────────────
+      # ── Windows ────────────────────────────────────────────────────────────
       - name: Install dependencies (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          vcpkg install boost-asio boost-beast boost-regex boost-system openssl --triplet x64-windows-static
+          vcpkg install boost-asio boost-beast boost-regex openssl --triplet x64-windows-static
           $tc = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
-          echo "VCPKG_TOOLCHAIN=$tc"               | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "VCPKG_DEFAULT_TRIPLET=x64-windows-static" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "VCPKG_TOOLCHAIN=$tc" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      # ── Configure ─────────────────────────────────────────────────────────
+      # ── Configure ──────────────────────────────────────────────────────────
       - name: Configure (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -76,8 +72,8 @@ jobs:
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR" \
-            -DBOOST_ROOT="$BOOST_ROOT" \
-            -DCMAKE_PREFIX_PATH="$BOOST_ROOT;$OPENSSL_ROOT_DIR"
+            -DBoost_DIR="$(brew --prefix boost)/lib/cmake/Boost-$(brew list --versions boost | awk '{print $2}')" \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix boost);$(brew --prefix openssl@3)"
 
       - name: Configure (Windows)
         if: runner.os == 'Windows'
@@ -90,22 +86,25 @@ jobs:
             -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
             -DBUILD_STATIC=ON
 
+      # ── Build ──────────────────────────────────────────────────────────────
       - name: Build
         run: cmake --build build --config Release --parallel
 
-      # ── Проверяем что бинарник не тянет лишних зависимостей ───────────────
-      - name: Check dependencies (Linux)
+      # ── Проверка зависимостей ──────────────────────────────────────────────
+      - name: Check binary (Linux)
         if: runner.os == 'Linux'
         run: |
-          ldd build/src/ipsuip || true
-          echo "--- file info ---"
           file build/src/ipsuip
+          echo "--- ldd ---"
+          ldd build/src/ipsuip || echo "(static — ldd не применим)"
+          echo "--- GLIBC versions needed ---"
+          objdump -T build/src/ipsuip 2>/dev/null | grep GLIBC | sed 's/.*GLIBC_/GLIBC_/' | sort -uV || true
 
-      - name: Check dependencies (macOS)
+      - name: Check binary (macOS)
         if: runner.os == 'macOS'
-        run: otool -L build/src/ipsuip || true
+        run: otool -L build/src/ipsuip
 
-      # ── Package ───────────────────────────────────────────────────────────
+      # ── Package ────────────────────────────────────────────────────────────
       - name: Package (Linux / macOS)
         if: runner.os != 'Windows'
         run: |
@@ -119,7 +118,7 @@ jobs:
           cmake --install build --prefix dist
           Compress-Archive -Path dist\bin\ipsuip.exe -DestinationPath ${{ matrix.artifact }}.zip
 
-      # ── Upload ────────────────────────────────────────────────────────────
+      # ── Upload ─────────────────────────────────────────────────────────────
       - name: Upload artifact (Linux / macOS)
         if: runner.os != 'Windows'
         uses: actions/upload-artifact@v4
@@ -155,8 +154,6 @@ jobs:
             dist/**/*.zip
           body: |
             ## ipsuip ${{ github.ref_name }}
-
-            Статически скомпонованные бинарники — работают без установки зависимостей.
 
             | Платформа | Файл | Использование |
             |-----------|------|---------------|
