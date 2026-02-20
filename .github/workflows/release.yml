@@ -1,0 +1,181 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            artifact_name: ipsuip-linux
+            qt_host: linux
+            qt_arch: gcc_64
+            install_deps: |
+              sudo apt-get update
+              sudo apt-get install -y \
+                build-essential ninja-build \
+                libgl1-mesa-dev libglu1-mesa-dev \
+                libxkbcommon-dev libxkbcommon-x11-dev \
+                libxcb-cursor-dev libxcb-icccm4-dev \
+                libxcb-image0-dev libxcb-keysyms1-dev \
+                libxcb-randr0-dev libxcb-render-util0-dev \
+                libxcb-shape0-dev libxcb-sync-dev \
+                libxcb-xfixes0-dev libxcb-xinerama0-dev \
+                libxcb-xkb-dev libxcb1-dev
+
+          - os: windows-latest
+            artifact_name: ipsuip-windows
+            qt_host: windows
+            qt_arch: win64_msvc2022_64
+            install_deps: ''
+
+          - os: macos-latest
+            artifact_name: ipsuip-macos
+            qt_host: mac
+            qt_arch: clang_64
+            install_deps: ''
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies (Linux)
+        if: matrix.os == 'ubuntu-22.04'
+        run: ${{ matrix.install_deps }}
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.7.3'
+          host: ${{ matrix.qt_host }}
+          arch: ${{ matrix.qt_arch }}
+          modules: 'qtquickcontrols2'
+          cache: true
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cmake -B build -G Ninja ^
+            -DCMAKE_BUILD_TYPE=Release ^
+            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}"
+
+      - name: Configure (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      # ── Linux: deploy with linuxdeploy ──────────────────────────────────────
+      - name: Deploy (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          cmake --install build --prefix build/install
+
+          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
+          chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
+
+          export QMAKE="${{ env.Qt6_DIR }}/bin/qmake"
+          ./linuxdeploy-x86_64.AppImage \
+            --appdir build/AppDir \
+            --executable build/install/bin/ipsuip \
+            --desktop-file packaging/ipsuip.desktop \
+            --icon-file packaging/ipsuip.png \
+            --plugin qt \
+            --output appimage
+
+          mv ipsuip*.AppImage ${{ matrix.artifact_name }}.AppImage
+
+      # ── macOS: create .dmg ──────────────────────────────────────────────────
+      - name: Deploy (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cmake --install build --prefix build/install
+          ${{ env.Qt6_DIR }}/bin/macdeployqt build/install/bin/ipsuip.app -dmg
+          mv build/install/bin/ipsuip.dmg ${{ matrix.artifact_name }}.dmg
+
+      # ── Windows: create ZIP with windeployqt ────────────────────────────────
+      - name: Deploy (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          cmake --install build --prefix build/install
+          $qtBin = "$env:Qt6_DIR\bin"
+          & "$qtBin\windeployqt.exe" `
+            --release --qmldir src/qml `
+            build/install/bin/ipsuip.exe
+          Compress-Archive -Path build/install/bin/* `
+            -DestinationPath "${{ matrix.artifact_name }}.zip"
+
+      # ── Upload artifacts ─────────────────────────────────────────────────────
+      - name: Upload artifact (Linux)
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}.AppImage
+
+      - name: Upload artifact (macOS)
+        if: runner.os == 'macOS'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}.dmg
+
+      - name: Upload artifact (Windows)
+        if: runner.os == 'Windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: ${{ matrix.artifact_name }}.zip
+
+  # ── Release: создаётся только при пуше тега ──────────────────────────────────
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: |
+            dist/**/*.AppImage
+            dist/**/*.dmg
+            dist/**/*.zip
+          body: |
+            ## ipsuip ${{ github.ref_name }}
+
+            ### Загрузки
+            | Платформа | Файл |
+            |-----------|------|
+            | 🐧 Linux  | `.AppImage` — запустить: `chmod +x *.AppImage && ./ipsuip-linux.AppImage` |
+            | 🍎 macOS  | `.dmg` — открыть и перетащить в Applications |
+            | 🪟 Windows | `.zip` — распаковать и запустить `ipsuip.exe` |
