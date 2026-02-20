@@ -39,13 +39,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── Linux system deps ──────────────────────────────────────────────────
-      - name: Install system dependencies (Linux)
+      # ── Linux: системные зависимости + Boost + OpenSSL ────────────────────
+      - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
             build-essential ninja-build \
+            libboost-all-dev \
+            libssl-dev \
             libgl1-mesa-dev libglu1-mesa-dev \
             libxkbcommon-dev libxkbcommon-x11-dev \
             libxcb-cursor-dev libxcb-icccm4-dev \
@@ -54,6 +56,28 @@ jobs:
             libxcb-shape0-dev libxcb-sync-dev \
             libxcb-xfixes0-dev libxcb-xinerama0-dev \
             libxcb-xkb-dev libxcb1-dev
+
+      # ── macOS: Boost + OpenSSL через Homebrew ─────────────────────────────
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install boost openssl@3
+          # Даём CMake знать, где лежит OpenSSL от Homebrew
+          echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
+          echo "BOOST_ROOT=$(brew --prefix boost)" >> $GITHUB_ENV
+
+      # ── Windows: Boost + OpenSSL через vcpkg ──────────────────────────────
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          # vcpkg уже предустановлен на windows-latest
+          vcpkg install boost-asio boost-beast boost-regex openssl `
+            --triplet x64-windows
+
+          # Сохраняем путь к toolchain для CMake
+          $toolchain = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
+          echo "VCPKG_TOOLCHAIN=$toolchain" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # ── Python + aqtinstall ────────────────────────────────────────────────
       - name: Set up Python
@@ -64,13 +88,10 @@ jobs:
       - name: Install aqtinstall
         run: pip install aqtinstall
 
-      # Полезно при отладке — показывает доступные модули для данной платформы
-      - name: List available Qt modules (debug)
-        run: aqt list-qt ${{ matrix.qt_host }} desktop --modules 6.7.3 ${{ matrix.qt_arch }}
+      # Показываем доступные архитектуры (полезно при отладке)
+      - name: List available Qt archs (debug)
+        run: aqt list-qt ${{ matrix.qt_host }} desktop --arch 6.7.3
 
-      # ── Install Qt (без дополнительных модулей — Qt Quick входит в базу) ──
-      # В Qt 6 qtquickcontrols2 является частью базовой поставки qt6-base
-      # и не устанавливается как отдельный модуль через aqt.
       - name: Install Qt (Unix)
         if: runner.os != 'Windows'
         run: |
@@ -84,9 +105,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          aqt install-qt ${{ matrix.qt_host }} desktop 6.7.3 ${{ matrix.qt_arch }} `
+          # Выводим доступные архитектуры на случай если win64_msvc2022_64 опять не подойдёт
+          aqt list-qt windows desktop --arch 6.7.3
+          aqt install-qt windows desktop 6.7.3 win64_msvc2022_64 `
             --outputdir ${{ github.workspace }}\Qt
-          $qtRoot = "${{ github.workspace }}\Qt\6.7.3\${{ matrix.qt_dir }}"
+          $qtRoot = "${{ github.workspace }}\Qt\6.7.3\msvc2022_64"
           echo "Qt6_DIR=$qtRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
           echo "$qtRoot\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
@@ -98,14 +121,25 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cmake -B build -G Ninja ^
             -DCMAKE_BUILD_TYPE=Release ^
-            -DCMAKE_PREFIX_PATH="%Qt6_DIR%"
+            -DCMAKE_PREFIX_PATH="%Qt6_DIR%" ^
+            -DCMAKE_TOOLCHAIN_FILE="%VCPKG_TOOLCHAIN%" ^
+            -DVCPKG_TARGET_TRIPLET=x64-windows
 
-      - name: Configure (Unix)
-        if: runner.os != 'Windows'
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH="${Qt6_DIR}"
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="${Qt6_DIR}" \
+            -DOPENSSL_ROOT_DIR="${OPENSSL_ROOT_DIR}" \
+            -DBOOST_ROOT="${BOOST_ROOT}"
 
       # ── Build ─────────────────────────────────────────────────────────────
       - name: Build
@@ -121,7 +155,6 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
 
-          # Генерируем .desktop если его нет в репозитории
           if [ ! -f packaging/ipsuip.desktop ]; then
             mkdir -p packaging
             cat > packaging/ipsuip.desktop <<EOF
@@ -165,6 +198,9 @@ jobs:
             --release `
             --qmldir "${{ github.workspace }}\src\qml" `
             build\install\bin\ipsuip.exe
+          # Копируем vcpkg DLL рядом с exe
+          Copy-Item "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin\*.dll" `
+            build\install\bin\ -ErrorAction SilentlyContinue
           Compress-Archive -Path build\install\bin\* `
             -DestinationPath ipsuip-windows.zip
 
