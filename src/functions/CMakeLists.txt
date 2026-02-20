@@ -8,4 +8,5 @@ target_include_directories(functions PUBLIC
 target_link_libraries(functions PUBLIC
     http_client_sync_ssl
     ${IPSUIP_BOOST_LIBRARIES}
+    ${IPSUIP_OPENSSL_LIBRARIES}
 )
