@@ -20,49 +20,79 @@ jobs:
           - os: ubuntu-22.04
             artifact_name: ipsuip-linux
             qt_host: linux
-            qt_arch: gcc_64
-            install_deps: |
-              sudo apt-get update
-              sudo apt-get install -y \
-                build-essential ninja-build \
-                libgl1-mesa-dev libglu1-mesa-dev \
-                libxkbcommon-dev libxkbcommon-x11-dev \
-                libxcb-cursor-dev libxcb-icccm4-dev \
-                libxcb-image0-dev libxcb-keysyms1-dev \
-                libxcb-randr0-dev libxcb-render-util0-dev \
-                libxcb-shape0-dev libxcb-sync-dev \
-                libxcb-xfixes0-dev libxcb-xinerama0-dev \
-                libxcb-xkb-dev libxcb1-dev
+            qt_target: desktop
+            qt_arch: linux_gcc_64
 
           - os: windows-latest
             artifact_name: ipsuip-windows
             qt_host: windows
+            qt_target: desktop
             qt_arch: win64_msvc2022_64
-            install_deps: ''
 
           - os: macos-latest
             artifact_name: ipsuip-macos
             qt_host: mac
+            qt_target: desktop
             qt_arch: clang_64
-            install_deps: ''
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # ── Linux system deps ──────────────────────────────────────────────────
       - name: Install system dependencies (Linux)
-        if: matrix.os == 'ubuntu-22.04'
-        run: ${{ matrix.install_deps }}
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential ninja-build \
+            libgl1-mesa-dev libglu1-mesa-dev \
+            libxkbcommon-dev libxkbcommon-x11-dev \
+            libxcb-cursor-dev libxcb-icccm4-dev \
+            libxcb-image0-dev libxcb-keysyms1-dev \
+            libxcb-randr0-dev libxcb-render-util0-dev \
+            libxcb-shape0-dev libxcb-sync-dev \
+            libxcb-xfixes0-dev libxcb-xinerama0-dev \
+            libxcb-xkb-dev libxcb1-dev
 
-      - name: Install Qt
-        uses: jurplel/install-qt-action@v4
+      # ── Install Qt via aqtinstall напрямую ────────────────────────────────
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          version: '6.7.3'
-          host: ${{ matrix.qt_host }}
-          arch: ${{ matrix.qt_arch }}
-          modules: 'qtquickcontrols2'
-          cache: true
+          python-version: '3.12'
 
+      - name: Install aqtinstall
+        run: pip install aqtinstall
+
+      - name: Install Qt (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          aqt install-qt linux desktop 6.7.3 linux_gcc_64 \
+            --outputdir ${{ github.workspace }}/Qt \
+            --modules qtquickcontrols2
+          echo "Qt6_DIR=${{ github.workspace }}/Qt/6.7.3/gcc_64" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/Qt/6.7.3/gcc_64/bin" >> $GITHUB_PATH
+
+      - name: Install Qt (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          aqt install-qt mac desktop 6.7.3 clang_64 \
+            --outputdir ${{ github.workspace }}/Qt \
+            --modules qtquickcontrols2
+          echo "Qt6_DIR=${{ github.workspace }}/Qt/6.7.3/macos" >> $GITHUB_ENV
+          echo "${{ github.workspace }}/Qt/6.7.3/macos/bin" >> $GITHUB_PATH
+
+      - name: Install Qt (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          aqt install-qt windows desktop 6.7.3 win64_msvc2022_64 `
+            --outputdir ${{ github.workspace }}\Qt `
+            --modules qtquickcontrols2
+          echo "Qt6_DIR=${{ github.workspace }}\Qt\6.7.3\msvc2022_64" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "${{ github.workspace }}\Qt\6.7.3\msvc2022_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      # ── Configure ─────────────────────────────────────────────────────────
       - name: Configure (Windows)
         if: runner.os == 'Windows'
         shell: cmd
@@ -70,19 +100,20 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cmake -B build -G Ninja ^
             -DCMAKE_BUILD_TYPE=Release ^
-            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}"
+            -DCMAKE_PREFIX_PATH="%Qt6_DIR%"
 
       - name: Configure (Unix)
         if: runner.os != 'Windows'
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="${{ env.Qt6_DIR }}"
+            -DCMAKE_PREFIX_PATH="${Qt6_DIR}"
 
+      # ── Build ─────────────────────────────────────────────────────────────
       - name: Build
         run: cmake --build build --config Release --parallel
 
-      # ── Linux: deploy with linuxdeploy ──────────────────────────────────────
+      # ── Deploy: Linux → AppImage ──────────────────────────────────────────
       - name: Deploy (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -92,59 +123,76 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
 
-          export QMAKE="${{ env.Qt6_DIR }}/bin/qmake"
+          # Создаём .desktop и иконку если их нет в репозитории
+          if [ ! -f packaging/ipsuip.desktop ]; then
+            mkdir -p packaging
+            cat > packaging/ipsuip.desktop <<EOF
+          [Desktop Entry]
+          Name=ipsuip
+          Exec=ipsuip
+          Icon=ipsuip
+          Type=Application
+          Categories=Utility;
+          EOF
+          fi
+
+          export QMAKE="${Qt6_DIR}/bin/qmake"
           ./linuxdeploy-x86_64.AppImage \
             --appdir build/AppDir \
             --executable build/install/bin/ipsuip \
+            --desktop-file packaging/ipsuip.desktop \
             --plugin qt \
             --output appimage
 
-          mv ipsuip*.AppImage ${{ matrix.artifact_name }}.AppImage
+          mv ipsuip*.AppImage ipsuip-linux.AppImage
 
-      # ── macOS: create .dmg ──────────────────────────────────────────────────
+      # ── Deploy: macOS → .dmg ──────────────────────────────────────────────
       - name: Deploy (macOS)
         if: runner.os == 'macOS'
         run: |
           cmake --install build --prefix build/install
-          ${{ env.Qt6_DIR }}/bin/macdeployqt build/install/bin/ipsuip.app -dmg
-          mv build/install/bin/ipsuip.dmg ${{ matrix.artifact_name }}.dmg
+          "${Qt6_DIR}/bin/macdeployqt" \
+            build/install/bin/ipsuip.app \
+            -qmldir="${{ github.workspace }}/src/qml" \
+            -dmg
+          mv build/install/bin/ipsuip.dmg ipsuip-macos.dmg
 
-      # ── Windows: create ZIP with windeployqt ────────────────────────────────
+      # ── Deploy: Windows → .zip ────────────────────────────────────────────
       - name: Deploy (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           cmake --install build --prefix build/install
-          $qtBin = "$env:Qt6_DIR\bin"
-          & "$qtBin\windeployqt.exe" `
-            --release --qmldir src/qml `
-            build/install/bin/ipsuip.exe
-          Compress-Archive -Path build/install/bin/* `
-            -DestinationPath "${{ matrix.artifact_name }}.zip"
+          & "$env:Qt6_DIR\bin\windeployqt.exe" `
+            --release `
+            --qmldir "${{ github.workspace }}\src\qml" `
+            build\install\bin\ipsuip.exe
+          Compress-Archive -Path build\install\bin\* `
+            -DestinationPath ipsuip-windows.zip
 
-      # ── Upload artifacts ─────────────────────────────────────────────────────
+      # ── Upload artifacts ──────────────────────────────────────────────────
       - name: Upload artifact (Linux)
         if: runner.os == 'Linux'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_name }}.AppImage
+          name: ipsuip-linux
+          path: ipsuip-linux.AppImage
 
       - name: Upload artifact (macOS)
         if: runner.os == 'macOS'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_name }}.dmg
+          name: ipsuip-macos
+          path: ipsuip-macos.dmg
 
       - name: Upload artifact (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact_name }}
-          path: ${{ matrix.artifact_name }}.zip
+          name: ipsuip-windows
+          path: ipsuip-windows.zip
 
-  # ── Release: создаётся только при пуше тега ──────────────────────────────────
+  # ── Release ───────────────────────────────────────────────────────────────
   release:
     name: Create Release
     needs: build
@@ -171,9 +219,8 @@ jobs:
           body: |
             ## ipsuip ${{ github.ref_name }}
 
-            ### Загрузки
-            | Платформа | Файл |
-            |-----------|------|
-            | 🐧 Linux  | `.AppImage` — запустить: `chmod +x *.AppImage && ./ipsuip-linux.AppImage` |
-            | 🍎 macOS  | `.dmg` — открыть и перетащить в Applications |
-            | 🪟 Windows | `.zip` — распаковать и запустить `ipsuip.exe` |
+            | Платформа | Файл | Как запустить |
+            |-----------|------|---------------|
+            | 🐧 Linux  | `.AppImage` | `chmod +x ipsuip-linux.AppImage && ./ipsuip-linux.AppImage` |
+            | 🍎 macOS  | `.dmg` | Открыть и перетащить в Applications |
+            | 🪟 Windows | `.zip` | Распаковать и запустить `ipsuip.exe` |
