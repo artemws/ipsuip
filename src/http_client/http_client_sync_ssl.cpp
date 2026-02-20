@@ -68,7 +68,7 @@ std::vector<std::string> ipsuip::get(const std::string &host, const std::string 
     std::cout << "Download " << ipsuip::HumanReadable(bytes) << "\n";
 
     if (ecr) {
-        std::cerr << ecr.value() << " " << ecr.what() << std::endl;
+        std::cerr << ecr.value() << " " << ecr.message() << std::endl;
         throw beast::system_error{ecr};
     }
 
@@ -89,7 +89,7 @@ std::vector<std::string> ipsuip::get(const std::string &host, const std::string 
     return v;
 
     if (ec == asio::error::eof) {
-        std::cerr << ec.value() << " " << ec.what() << std::endl;
+        std::cerr << ec.value() << " " << ec.message() << std::endl;
         ec = {};
     }
 
