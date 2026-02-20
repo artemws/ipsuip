@@ -18,39 +18,23 @@ jobs:
       matrix:
         include:
           - os: ubuntu-22.04
-            qt_host: linux
-            qt_arch: linux_gcc_64
-            qt_dir: gcc_64
+            artifact: ipsuip-linux
 
           - os: windows-latest
-            qt_host: windows
-            qt_arch: win64_msvc2022_64
-            qt_dir: msvc2022_64
+            artifact: ipsuip-windows
 
           - os: macos-latest
-            qt_host: mac
-            qt_arch: clang_64
-            qt_dir: macos
+            artifact: ipsuip-macos
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install system dependencies (Linux)
+      - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential ninja-build imagemagick \
-            libboost-all-dev libssl-dev \
-            libgl1-mesa-dev libglu1-mesa-dev \
-            libxkbcommon-dev libxkbcommon-x11-dev \
-            libxcb-cursor-dev libxcb-icccm4-dev \
-            libxcb-image0-dev libxcb-keysyms1-dev \
-            libxcb-randr0-dev libxcb-render-util0-dev \
-            libxcb-shape0-dev libxcb-sync-dev \
-            libxcb-xfixes0-dev libxcb-xinerama0-dev \
-            libxcb-xkb-dev libxcb1-dev
+          sudo apt-get install -y build-essential ninja-build libboost-all-dev libssl-dev
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
@@ -67,45 +51,15 @@ jobs:
           $tc = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
           echo "VCPKG_TOOLCHAIN=$tc" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install aqtinstall
-        run: pip install aqtinstall
-
-      - name: Install Qt (Linux / macOS)
-        if: runner.os != 'Windows'
-        run: |
-          aqt install-qt ${{ matrix.qt_host }} desktop 6.7.3 ${{ matrix.qt_arch }} \
-            --outputdir "${{ github.workspace }}/Qt"
-          echo "Qt6_DIR=${{ github.workspace }}/Qt/6.7.3/${{ matrix.qt_dir }}" >> $GITHUB_ENV
-          echo "${{ github.workspace }}/Qt/6.7.3/${{ matrix.qt_dir }}/bin" >> $GITHUB_PATH
-
-      - name: Install Qt (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          aqt install-qt windows desktop 6.7.3 win64_msvc2022_64 `
-            --outputdir "${{ github.workspace }}\Qt"
-          $root = "${{ github.workspace }}\Qt\6.7.3\msvc2022_64"
-          echo "Qt6_DIR=$root" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "$root\bin"     | Out-File -FilePath $env:GITHUB_PATH -Append
-
       - name: Configure (Linux)
         if: runner.os == 'Linux'
-        run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$Qt6_DIR"
+        run: cmake -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
 
       - name: Configure (macOS)
         if: runner.os == 'macOS'
         run: |
           cmake -B build -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$Qt6_DIR" \
             -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR" \
             -DBOOST_ROOT="$BOOST_ROOT"
 
@@ -116,93 +70,41 @@ jobs:
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           cmake -B build -G Ninja ^
             -DCMAKE_BUILD_TYPE=Release ^
-            -DCMAKE_PREFIX_PATH="%Qt6_DIR%" ^
             -DCMAKE_TOOLCHAIN_FILE="%VCPKG_TOOLCHAIN%" ^
             -DVCPKG_TARGET_TRIPLET=x64-windows
 
       - name: Build
         run: cmake --build build --config Release --parallel
 
-      - name: Deploy (Linux)
-        if: runner.os == 'Linux'
+      - name: Package (Linux / macOS)
+        if: runner.os != 'Windows'
         run: |
-          cmake --install build --prefix build/install
+          cmake --install build --prefix dist
+          tar -czf ${{ matrix.artifact }}.tar.gz -C dist/bin ipsuip
 
-          wget -q https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
-          chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
-
-          mkdir -p packaging
-
-          # .desktop файл
-          printf '[Desktop Entry]\nName=ipsuip\nExec=ipsuip\nIcon=ipsuip\nType=Application\nCategories=Utility;\n' \
-            > packaging/ipsuip.desktop
-
-          # Иконка-заглушка если нет своей
-          if [ ! -f packaging/ipsuip.png ]; then
-            convert -size 256x256 xc:#2d7dd2 \
-              -fill white -font DejaVu-Sans-Bold -pointsize 72 \
-              -gravity center -annotate 0 "ip" \
-              packaging/ipsuip.png
-          fi
-
-          export QMAKE="$Qt6_DIR/bin/qmake"
-          export LD_LIBRARY_PATH="$Qt6_DIR/lib:$LD_LIBRARY_PATH"
-          export QML_SOURCES_PATHS="${{ github.workspace }}/src/qml"
-
-          ./linuxdeploy-x86_64.AppImage \
-            --appdir build/AppDir \
-            --executable build/install/bin/ipsuip \
-            --desktop-file packaging/ipsuip.desktop \
-            --icon-file packaging/ipsuip.png \
-            --plugin qt \
-            --output appimage
-
-          mv ipsuip*.AppImage ipsuip-linux.AppImage
-
-      - name: Deploy (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          cmake --install build --prefix build/install
-          "$Qt6_DIR/bin/macdeployqt" \
-            build/install/bin/ipsuip.app \
-            -qmldir="${{ github.workspace }}/src/qml" \
-            -dmg
-          mv build/install/bin/ipsuip.dmg ipsuip-macos.dmg
-
-      - name: Deploy (Windows)
+      - name: Package (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          cmake --install build --prefix build/install
-          & "$env:Qt6_DIR\bin\windeployqt.exe" `
-            --release `
-            --qmldir "${{ github.workspace }}\src\qml" `
-            build\install\bin\ipsuip.exe
-          Copy-Item "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin\*.dll" `
-            build\install\bin\ -ErrorAction SilentlyContinue
-          Compress-Archive -Path build\install\bin\* -DestinationPath ipsuip-windows.zip
+          cmake --install build --prefix dist
+          Copy-Item "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin\libssl-*.dll"    dist\bin\ -ErrorAction SilentlyContinue
+          Copy-Item "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin\libcrypto-*.dll" dist\bin\ -ErrorAction SilentlyContinue
+          Copy-Item "$env:VCPKG_INSTALLATION_ROOT\installed\x64-windows\bin\boost_regex*.dll" dist\bin\ -ErrorAction SilentlyContinue
+          Compress-Archive -Path dist\bin\* -DestinationPath ${{ matrix.artifact }}.zip
 
-      - name: Upload artifact (Linux)
-        if: runner.os == 'Linux'
+      - name: Upload artifact (Linux / macOS)
+        if: runner.os != 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ipsuip-linux
-          path: ipsuip-linux.AppImage
-
-      - name: Upload artifact (macOS)
-        if: runner.os == 'macOS'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ipsuip-macos
-          path: ipsuip-macos.dmg
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.tar.gz
 
       - name: Upload artifact (Windows)
         if: runner.os == 'Windows'
         uses: actions/upload-artifact@v4
         with:
-          name: ipsuip-windows
-          path: ipsuip-windows.zip
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
 
   release:
     name: Create Release
@@ -221,14 +123,13 @@ jobs:
           tag_name: ${{ github.ref_name }}
           name: Release ${{ github.ref_name }}
           files: |
-            dist/**/*.AppImage
-            dist/**/*.dmg
+            dist/**/*.tar.gz
             dist/**/*.zip
           body: |
             ## ipsuip ${{ github.ref_name }}
 
-            | Платформа | Как запустить |
-            |-----------|---------------|
-            | 🐧 Linux `.AppImage` | `chmod +x ipsuip-linux.AppImage && ./ipsuip-linux.AppImage` |
-            | 🍎 macOS `.dmg` | Открыть, перетащить в Applications |
-            | 🪟 Windows `.zip` | Распаковать, запустить `ipsuip.exe` |
+            | Платформа | Файл | Использование |
+            |-----------|------|---------------|
+            | Linux  | `.tar.gz` | `tar -xzf ipsuip-linux.tar.gz && ./ipsuip --help` |
+            | macOS  | `.tar.gz` | `tar -xzf ipsuip-macos.tar.gz && ./ipsuip --help` |
+            | Windows | `.zip` | Распаковать, запустить `ipsuip.exe --help` |
