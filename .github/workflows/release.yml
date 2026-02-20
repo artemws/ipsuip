@@ -155,16 +155,26 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
 
+          mkdir -p packaging
+
           if [ ! -f packaging/ipsuip.desktop ]; then
-            mkdir -p packaging
             cat > packaging/ipsuip.desktop <<EOF
-          [Desktop Entry]
-          Name=ipsuip
-          Exec=ipsuip
-          Icon=ipsuip
-          Type=Application
-          Categories=Utility;
-          EOF
+[Desktop Entry]
+Name=ipsuip
+Exec=ipsuip
+Icon=ipsuip
+Type=Application
+Categories=Utility;
+EOF
+          fi
+
+          # Генерируем иконку-заглушку если её нет в репозитории
+          if [ ! -f packaging/ipsuip.png ]; then
+            sudo apt-get install -y imagemagick --no-install-recommends -q
+            convert -size 256x256 xc:#2d7dd2 \
+              -fill white -font DejaVu-Sans-Bold -pointsize 72 \
+              -gravity center -annotate 0 "ip" \
+              packaging/ipsuip.png
           fi
 
           # Указываем linuxdeploy где искать Qt библиотеки и плагины
@@ -176,6 +186,7 @@ jobs:
             --appdir build/AppDir \
             --executable build/install/bin/ipsuip \
             --desktop-file packaging/ipsuip.desktop \
+            --icon-file packaging/ipsuip.png \
             --plugin qt \
             --output appimage
 
