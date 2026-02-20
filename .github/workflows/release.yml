@@ -20,20 +20,20 @@ jobs:
           - os: ubuntu-22.04
             artifact_name: ipsuip-linux
             qt_host: linux
-            qt_target: desktop
             qt_arch: linux_gcc_64
+            qt_dir: gcc_64
 
           - os: windows-latest
             artifact_name: ipsuip-windows
             qt_host: windows
-            qt_target: desktop
             qt_arch: win64_msvc2022_64
+            qt_dir: msvc2022_64
 
           - os: macos-latest
             artifact_name: ipsuip-macos
             qt_host: mac
-            qt_target: desktop
             qt_arch: clang_64
+            qt_dir: macos
 
     steps:
       - name: Checkout
@@ -55,7 +55,7 @@ jobs:
             libxcb-xfixes0-dev libxcb-xinerama0-dev \
             libxcb-xkb-dev libxcb1-dev
 
-      # ── Install Qt via aqtinstall напрямую ────────────────────────────────
+      # ── Python + aqtinstall ────────────────────────────────────────────────
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -64,33 +64,31 @@ jobs:
       - name: Install aqtinstall
         run: pip install aqtinstall
 
-      - name: Install Qt (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          aqt install-qt linux desktop 6.7.3 linux_gcc_64 \
-            --outputdir ${{ github.workspace }}/Qt \
-            --modules qtquickcontrols2
-          echo "Qt6_DIR=${{ github.workspace }}/Qt/6.7.3/gcc_64" >> $GITHUB_ENV
-          echo "${{ github.workspace }}/Qt/6.7.3/gcc_64/bin" >> $GITHUB_PATH
+      # Полезно при отладке — показывает доступные модули для данной платформы
+      - name: List available Qt modules (debug)
+        run: aqt list-qt ${{ matrix.qt_host }} desktop --modules 6.7.3 ${{ matrix.qt_arch }}
 
-      - name: Install Qt (macOS)
-        if: runner.os == 'macOS'
+      # ── Install Qt (без дополнительных модулей — Qt Quick входит в базу) ──
+      # В Qt 6 qtquickcontrols2 является частью базовой поставки qt6-base
+      # и не устанавливается как отдельный модуль через aqt.
+      - name: Install Qt (Unix)
+        if: runner.os != 'Windows'
         run: |
-          aqt install-qt mac desktop 6.7.3 clang_64 \
-            --outputdir ${{ github.workspace }}/Qt \
-            --modules qtquickcontrols2
-          echo "Qt6_DIR=${{ github.workspace }}/Qt/6.7.3/macos" >> $GITHUB_ENV
-          echo "${{ github.workspace }}/Qt/6.7.3/macos/bin" >> $GITHUB_PATH
+          aqt install-qt ${{ matrix.qt_host }} desktop 6.7.3 ${{ matrix.qt_arch }} \
+            --outputdir ${{ github.workspace }}/Qt
+          QT_ROOT="${{ github.workspace }}/Qt/6.7.3/${{ matrix.qt_dir }}"
+          echo "Qt6_DIR=${QT_ROOT}" >> $GITHUB_ENV
+          echo "${QT_ROOT}/bin" >> $GITHUB_PATH
 
       - name: Install Qt (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          aqt install-qt windows desktop 6.7.3 win64_msvc2022_64 `
-            --outputdir ${{ github.workspace }}\Qt `
-            --modules qtquickcontrols2
-          echo "Qt6_DIR=${{ github.workspace }}\Qt\6.7.3\msvc2022_64" | Out-File -FilePath $env:GITHUB_ENV -Append
-          echo "${{ github.workspace }}\Qt\6.7.3\msvc2022_64\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+          aqt install-qt ${{ matrix.qt_host }} desktop 6.7.3 ${{ matrix.qt_arch }} `
+            --outputdir ${{ github.workspace }}\Qt
+          $qtRoot = "${{ github.workspace }}\Qt\6.7.3\${{ matrix.qt_dir }}"
+          echo "Qt6_DIR=$qtRoot" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "$qtRoot\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
 
       # ── Configure ─────────────────────────────────────────────────────────
       - name: Configure (Windows)
@@ -123,7 +121,7 @@ jobs:
           wget -q https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/linuxdeploy-plugin-qt-x86_64.AppImage
           chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
 
-          # Создаём .desktop и иконку если их нет в репозитории
+          # Генерируем .desktop если его нет в репозитории
           if [ ! -f packaging/ipsuip.desktop ]; then
             mkdir -p packaging
             cat > packaging/ipsuip.desktop <<EOF
