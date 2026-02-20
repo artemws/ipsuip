@@ -23,4 +23,9 @@ set(IPSUIP_BOOST_INCLUDE_DIRS ${Boost_INCLUDE_DIRS})
 set(IPSUIP_BOOST_LIBRARIES    Boost::regex)
 set(IPSUIP_OPENSSL_LIBRARIES  OpenSSL::SSL OpenSSL::Crypto)
 
+# Минимальная версия Windows API — Windows 10
+if(WIN32)
+    add_compile_definitions(_WIN32_WINNT=0x0A00)
+endif()
+
 add_subdirectory(src)
