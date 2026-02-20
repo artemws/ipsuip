@@ -284,7 +284,7 @@ void ipsuip::run_init(const std::string &code, const std::string &path,
   std::vector<std::string> data{parsing_site(code, TYPE)};
 
   std::cout << "Start for    --> " << _map[code] << "\n";
-  std::cout << "Path to save --> " + std::string(path_) + _map[code] << "\n";
+  std::cout << "Path to save --> " + path_.string() + _map[code] << "\n";
 
   std::vector<std::string> v;
 
