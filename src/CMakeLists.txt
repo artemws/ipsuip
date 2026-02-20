@@ -1,3 +1,4 @@
+# functions должен быть первым — http_client зависит от functions.h
 add_subdirectory(functions)
 add_subdirectory(http_client)
 
@@ -17,7 +18,6 @@ target_link_libraries(ipsuip PRIVATE
     ${IPSUIP_BOOST_LIBRARIES}
 )
 
-# На Linux статическая сборка: явно тянем системные либы статически
 if(BUILD_STATIC AND UNIX AND NOT APPLE)
     target_link_options(ipsuip PRIVATE -static-libgcc -static-libstdc++)
 endif()
