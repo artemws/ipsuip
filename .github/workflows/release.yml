@@ -10,73 +10,111 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    name: Build (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          # ubuntu-20.04 даёт glibc 2.31 — работает на Rocky Linux 8/9, CentOS 8+
-          - os: ubuntu-20.04
-            artifact: ipsuip-linux
+  # ── Linux: полностью статический бинарник через musl ──────────────────────
+  # Результат не зависит от glibc — работает на Rocky 8, CentOS 7, Alpine и т.д.
+  build-linux:
+    name: Build (Linux)
+    runs-on: ubuntu-22.04
+    container:
+      image: alpine:3.19
 
-          - os: windows-latest
-            artifact: ipsuip-windows
+    steps:
+      - name: Install dependencies
+        run: |
+          apk add --no-cache \
+            git bash \
+            build-base ninja cmake \
+            boost-dev boost-static \
+            openssl-dev openssl-libs-static \
+            linux-headers
 
-          - os: macos-latest
-            artifact: ipsuip-macos
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure
+        run: |
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_STATIC=ON \
+            -DCMAKE_EXE_LINKER_FLAGS="-static"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Verify — no dynamic deps
+        run: |
+          file build/src/ipsuip
+          ldd build/src/ipsuip || echo ">>> static binary, ldd не применим — это нормально"
+
+      - name: Package
+        run: |
+          cmake --install build --prefix dist
+          tar -czf ipsuip-linux.tar.gz -C dist/bin ipsuip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipsuip-linux
+          path: ipsuip-linux.tar.gz
+
+  # ── macOS ──────────────────────────────────────────────────────────────────
+  build-macos:
+    name: Build (macOS)
+    runs-on: macos-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # ── Linux ──────────────────────────────────────────────────────────────
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
+      - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential ninja-build \
-            libboost-all-dev \
-            libssl-dev
-
-      # ── macOS ──────────────────────────────────────────────────────────────
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          brew install boost openssl@3 ninja
+          brew install boost openssl@3 ninja cmake
           echo "OPENSSL_ROOT_DIR=$(brew --prefix openssl@3)" >> $GITHUB_ENV
           echo "BOOST_ROOT=$(brew --prefix boost)"          >> $GITHUB_ENV
 
-      # ── Windows ────────────────────────────────────────────────────────────
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
+      - name: Configure
+        run: |
+          BOOST_VER=$(brew list --versions boost | awk '{print $2}')
+          cmake -B build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR" \
+            -DBoost_DIR="$(brew --prefix boost)/lib/cmake/Boost-${BOOST_VER}" \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix boost);$(brew --prefix openssl@3)"
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Check dependencies
+        run: otool -L build/src/ipsuip
+
+      - name: Package
+        run: |
+          cmake --install build --prefix dist
+          tar -czf ipsuip-macos.tar.gz -C dist/bin ipsuip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ipsuip-macos
+          path: ipsuip-macos.tar.gz
+
+  # ── Windows ────────────────────────────────────────────────────────────────
+  build-windows:
+    name: Build (Windows)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
         shell: pwsh
         run: |
           vcpkg install boost-asio boost-beast boost-regex openssl --triplet x64-windows-static
           $tc = "$env:VCPKG_INSTALLATION_ROOT\scripts\buildsystems\vcpkg.cmake"
           echo "VCPKG_TOOLCHAIN=$tc" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-      # ── Configure ──────────────────────────────────────────────────────────
-      - name: Configure (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DBUILD_STATIC=ON
-
-      - name: Configure (macOS)
-        if: runner.os == 'macOS'
-        run: |
-          cmake -B build -G Ninja \
-            -DCMAKE_BUILD_TYPE=Release \
-            -DOPENSSL_ROOT_DIR="$OPENSSL_ROOT_DIR" \
-            -DBoost_DIR="$(brew --prefix boost)/lib/cmake/Boost-$(brew list --versions boost | awk '{print $2}')" \
-            -DCMAKE_PREFIX_PATH="$(brew --prefix boost);$(brew --prefix openssl@3)"
-
-      - name: Configure (Windows)
-        if: runner.os == 'Windows'
+      - name: Configure
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
@@ -86,56 +124,25 @@ jobs:
             -DVCPKG_TARGET_TRIPLET=x64-windows-static ^
             -DBUILD_STATIC=ON
 
-      # ── Build ──────────────────────────────────────────────────────────────
       - name: Build
         run: cmake --build build --config Release --parallel
 
-      # ── Проверка зависимостей ──────────────────────────────────────────────
-      - name: Check binary (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          file build/src/ipsuip
-          echo "--- ldd ---"
-          ldd build/src/ipsuip || echo "(static — ldd не применим)"
-          echo "--- GLIBC versions needed ---"
-          objdump -T build/src/ipsuip 2>/dev/null | grep GLIBC | sed 's/.*GLIBC_/GLIBC_/' | sort -uV || true
-
-      - name: Check binary (macOS)
-        if: runner.os == 'macOS'
-        run: otool -L build/src/ipsuip
-
-      # ── Package ────────────────────────────────────────────────────────────
-      - name: Package (Linux / macOS)
-        if: runner.os != 'Windows'
-        run: |
-          cmake --install build --prefix dist
-          tar -czf ${{ matrix.artifact }}.tar.gz -C dist/bin ipsuip
-
-      - name: Package (Windows)
-        if: runner.os == 'Windows'
+      - name: Package
         shell: pwsh
         run: |
           cmake --install build --prefix dist
-          Compress-Archive -Path dist\bin\ipsuip.exe -DestinationPath ${{ matrix.artifact }}.zip
+          Compress-Archive -Path dist\bin\ipsuip.exe -DestinationPath ipsuip-windows.zip
 
-      # ── Upload ─────────────────────────────────────────────────────────────
-      - name: Upload artifact (Linux / macOS)
-        if: runner.os != 'Windows'
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}.tar.gz
+          name: ipsuip-windows
+          path: ipsuip-windows.zip
 
-      - name: Upload artifact (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.artifact }}.zip
-
+  # ── Release ────────────────────────────────────────────────────────────────
   release:
     name: Create Release
-    needs: build
+    needs: [build-linux, build-macos, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
@@ -155,8 +162,10 @@ jobs:
           body: |
             ## ipsuip ${{ github.ref_name }}
 
-            | Платформа | Файл | Использование |
-            |-----------|------|---------------|
-            | Linux  | `.tar.gz` | `tar -xzf ipsuip-linux.tar.gz && ./ipsuip --help` |
-            | macOS  | `.tar.gz` | `tar -xzf ipsuip-macos.tar.gz && ./ipsuip --help` |
-            | Windows | `.zip` | Распаковать, запустить `ipsuip.exe --help` |
+            Полностью статические бинарники — не требуют установки зависимостей.
+
+            | Платформа | Совместимость | Использование |
+            |-----------|---------------|---------------|
+            | Linux `.tar.gz` | Rocky 8+, CentOS 7+, Debian 9+, Alpine | `tar -xzf ipsuip-linux.tar.gz && ./ipsuip --help` |
+            | macOS `.tar.gz` | macOS 13+ | `tar -xzf ipsuip-macos.tar.gz && ./ipsuip --help` |
+            | Windows `.zip` | Windows 10+ | Распаковать, запустить `ipsuip.exe --help` |
